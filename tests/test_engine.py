@@ -52,9 +52,9 @@ class EngineTests(unittest.TestCase):
         self.p['actions'][0]['g_effect']='favorable'
         self.assertEqual(generate(self.one_family()).counts['ELUN'],14)
         self.assertTrue(all(dict(c.cases)[1]==1 for c in generate(self.p).combinations))
-    def test_restrictions_require_reason(self):
+    def test_favorable_without_reason(self):
         self.p['actions'][0].update(g_effect='favorable',notes='')
-        with self.assertRaises(InputError):generate(self.p)
+        self.assertTrue(generate(self.p).combinations)
     def test_permanent_only(self):
         self.p['actions']=self.p['actions'][:1]
         self.assertEqual(generate(self.p).counts,{'ELUN':2,'ELSR':1,'ELSF':1,'ELSQP':1})

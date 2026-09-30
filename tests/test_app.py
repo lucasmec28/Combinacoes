@@ -32,7 +32,8 @@ class InterfaceTests(unittest.TestCase):
         at=self.app();self.click(at,'Carregar exemplo didático');self.click(at,'Editar ação')
         next(x for x in at.selectbox if x.label=='Tipo de carregamento').set_value('EXC').run()
         self.assertEqual(len(at.exception),0)
-        self.assertEqual(next(x for x in at.multiselect if x.label=='Participa das combinações').options,['ELU excepcional'])
+        self.assertFalse(any(x.label=='Participa das combinações' for x in at.multiselect))
+        self.assertTrue(any('somente de ELU excepcional' in x.value for x in at.caption))
     def test_duplicate_origin_and_case(self):
         at=self.app();self.click(at,'Carregar exemplo didático');self.click(at,'Duplicar ação')
         actions=at.session_state['project']['actions']

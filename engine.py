@@ -8,8 +8,8 @@ from hashlib import sha256
 from pathlib import Path
 import json
 
-APP_VERSION = "PY01"
-SCHEMA_VERSION = 1
+APP_VERSION = "PY02"
+SCHEMA_VERSION = 2
 FAMILIES = {
     "ELUN": "ELU normal", "ELUE": "ELU especial", "ELUC": "ELU construção",
     "ELUX": "ELU excepcional", "ELSR": "ELS rara", "ELSF": "ELS frequente",
@@ -80,7 +80,22 @@ def new_action(case=1):
             "notes": "", "custom": None}
 
 
+def action_nature(action):
+    if action.get("type") == "CUSTOM":
+        return (action.get("custom") or {}).get("nature")
+    return TYPES.get(action.get("type"), {}).get("nature")
+
+
+def sync_global_families(project):
+    """A seleção lateral governa todas as ações; E participa só de ELUX."""
+    for action in project.get("actions", []):
+        action["families"] = [f for f in project.get("families", [])
+                              if action_nature(action) != "E" or f == "ELUX"]
+    return project
+
+
 def fingerprint(project):
+    project = sync_global_families(deepcopy(project))
     payload = {"project": project, "bank": BANK_HASH, "engine": APP_VERSION}
     return sha256(json.dumps(payload, sort_keys=True, ensure_ascii=False, allow_nan=False).encode()).hexdigest()
 
@@ -250,8 +265,6 @@ def prepare(project):
         if nature.startswith("G"):
             if a.get("g_effect") not in ("both", "unfavorable", "favorable"):
                 raise InputError(f"Caso {cid}: defina o efeito da permanente.")
-            if (a["g_effect"] != "both" or set(families) - set(af)) and not note:
-                raise InputError(f"Caso {cid}: justifique a restrição de ponderações ou a exclusão de G.")
             if a.get("group") is not None:
                 raise InputError(f"Caso {cid}: use origem física para G; grupo de compatibilidade é para Q/E.")
         elif nature == "Q":
@@ -316,7 +329,7 @@ class Result:
 
 def generate(project, progress=None):
     """Sem estado global de projeto. Excede limite => exceção, nunca saída parcial."""
-    project = deepcopy(project)
+    project = sync_global_families(deepcopy(project))
     units = prepare(project)
     combination_limit = positive_int(project["limit"], "Limite de combinações", 50000)
     visit_limit = positive_int(project["visit_limit"], "Limite de tentativas", 5_000_000)
@@ -374,7 +387,7 @@ def generate(project, progress=None):
                 return
             cases = tuple(sorted(cases))
             key = family, cases
-            leader_name = units[leader].key if leader is not None else "Sem principal"
+            leader_name = " + ".join(f"{a['case']} · {a['name']}" for a in units[leader].actions) if leader is not None else "Sem principal"
             if key in seen:
                 duplicate_count += 1
                 old = rows[seen[key]]
@@ -382,7 +395,7 @@ def generate(project, progress=None):
                     old.leaders.append(leader_name)
                 return
             if len(rows) >= combination_limit:
-                raise GenerationLimit("Limite de combinações atingido. Nenhum conjunto parcial foi liberado. Revise as restrições ou aumente o limite.")
+                raise GenerationLimit("A geração atingiu a capacidade desta versão. Nenhum conjunto parcial foi liberado. Revise os grupos incompatíveis e as hipóteses consideradas.")
             counts[family] += 1
             name = f"{project['prefix']}{family}_{counts[family]:05d}"
             seen[key] = len(rows)

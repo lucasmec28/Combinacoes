@@ -5,14 +5,26 @@ import pandas as pd
 import streamlit as st
 from engine import (BANK, BANK_HASH, TYPES, PROFILES, GAMMA, PSI, FAMILIES, RULES,
                     InputError, new_project, new_action, example_project, factor_record,
-                    generate, fingerprint)
+                    generate, fingerprint, sync_global_families, action_nature, APP_VERSION, SCHEMA_VERSION)
 from project_io import dump_project, load_project, robot_tsv, audit_csv
+from excel_export import robot_xlsx
 
 st.set_page_config(page_title='Combinações • Robot', page_icon='🏗️', layout='wide')
 st.markdown('''<style>
 .block-container {padding-top:2rem;max-width:1450px}
 [data-testid="stMetric"] {background:#edf5f5;border-radius:12px;padding:16px}
-[data-testid="stSidebar"] {background:#f1f5f9}
+[data-testid="stSidebar"] {background:#e8eef6}
+/* As listas são renderizadas fora da coluna: estilos no portal e nas opções. */
+[data-baseweb="select"] > div {background:#ffffff !important;color:#14263d !important;border-color:#61758f !important}
+[data-baseweb="select"] input {color:#14263d !important;-webkit-text-fill-color:#14263d !important}
+[data-baseweb="popover"] [role="listbox"], [data-baseweb="menu"] {background:#ffffff !important;color:#14263d !important;border:1px solid #61758f !important}
+[role="option"] {background:#ffffff !important;color:#14263d !important}
+[role="option"]:hover, [role="option"][aria-selected="true"] {background:#d9e9ff !important;color:#102a4c !important}
+[data-baseweb="tag"] {background:#174b80 !important;color:#ffffff !important}
+[data-baseweb="tag"] span {color:#ffffff !important}
+[data-baseweb="tag"] svg {fill:#ffffff !important}
+[data-testid="stTextInput"] input, [data-testid="stNumberInput"] input, textarea {background:#ffffff !important;color:#14263d !important}
+[data-testid="stCaptionContainer"] {color:#415269}
 h1 {letter-spacing:-.04em} .stCaption {line-height:1.5}
 </style>''',unsafe_allow_html=True)
 if 'project' not in st.session_state:
@@ -37,18 +49,25 @@ def pick(label, options, value, key, labels=None, help=None):
 
 
 p=st.session_state.project
+p['schema']=SCHEMA_VERSION
+p['app_version']=APP_VERSION
 rev=st.session_state.revision
 with st.sidebar:
     st.markdown('### COMBINAÇÕES / ROBOT')
-    st.caption('Estruturas metálicas · ELU + ELS')
+    st.caption(f'Estruturas metálicas · ELU + ELS · {APP_VERSION}')
     p['name']=st.text_input('Projeto',value=p['name'],key=f'name_{rev}',placeholder='Nome da estrutura')
     p['standard']=pick('Norma de referência',BANK['standards'],p['standard'],f'std_{rev}',
         help='Os fatores são buscados exclusivamente nesta norma. NBR 8800 inclui a errata de 2025.')
     p['families']=st.multiselect('Combinações a gerar',list(FAMILIES),default=p['families'],format_func=FAMILIES.get,key=f'families_{rev}')
-    with st.expander('Ponderação e critérios',expanded=p['g_mode'] is None):
-        modes={'separate':'Separadamente, por ação','grouped':'Agrupadas conforme a norma'}
-        p['g_mode']=pick('Permanentes diretas (γG)',list(modes),p['g_mode'],f'gm_{rev}',modes)
-        p['q_mode']=pick('Variáveis (γQ)',list(modes),p['q_mode'],f'qm_{rev}',modes)
+    sync_global_families(p)
+    st.caption('Esta seleção vale para todas as ações. Ações excepcionais entram apenas em ELU excepcional.')
+    with st.expander('Como aplicar os coeficientes γ',expanded=p['g_mode'] is None or p['q_mode'] is None):
+        gm={'separate':'γ específico por tipo de permanente','grouped':'γ do conjunto de permanentes diretas'}
+        qm={'separate':'γ específico por tipo de variável','grouped':'γ comum para as variáveis'}
+        p['g_mode']=pick('Permanentes diretas (γG)',list(gm),p['g_mode'],f'gm_{rev}',gm)
+        p['q_mode']=pick('Variáveis (γQ)',list(qm),p['q_mode'],f'qm_{rev}',qm)
+        st.caption('Por tipo: usa a linha própria da tabela para aço, carga permanente, vento etc. Em conjunto: usa a linha normativa de ações agrupadas. Para G, o conjunto também varia favorável/desfavorável em bloco.')
+        st.caption('Esta escolha altera os coeficientes γ. Não define incompatibilidade e não transforma uma carga em ação truncada. Ação truncada, quando aplicável, é um tipo de carregamento no cadastro.')
         if p['standard']=='NBR 14762:2010' and 'grouped' in (p['g_mode'],p['q_mode']):
             p['occupancy_band']=pick('Uso / ocupação (kN/m²)',['<=5','>5'],p['occupancy_band'],f'occ_{rev}',{'<=5':'Até 5 kN/m²','>5':'Acima de 5 kN/m²'})
         if p['q_mode']=='grouped':
@@ -59,14 +78,14 @@ with st.sidebar:
         if set(p['families']) & {'ELUE','ELUC','ELUX'}:
             p['effective_reason']=st.text_area('Critério / duração que fundamenta ψ efetivo',value=p['effective_reason'],key=f'efreason_{rev}')
         p['prefix']=st.text_input('Prefixo dos nomes',value=p['prefix'],max_chars=20,key=f'prefix_{rev}')
-        p['limit']=st.number_input('Máximo de combinações',1,50000,int(p['limit']),step=100,key=f'limit_{rev}')
-        p['visit_limit']=st.number_input('Máximo de tentativas',1,5000000,int(p['visit_limit']),step=10000,key=f'visits_{rev}')
+
     with st.expander('Abrir / salvar projeto'):
         st.caption('Baixe o JSON para guardar suas entradas e reabrir em outro momento. A sessão não é um arquivo salvo.')
         uploaded=st.file_uploader('Projeto salvo (.json)',type=['json'],key=f'upload_{rev}')
         if st.button('Abrir arquivo',disabled=uploaded is None):
             try:
                 replace_project(load_project(uploaded.getvalue()))
+                st.session_state.import_notice='Projeto aberto. As famílias selecionadas no menu lateral agora se aplicam a todas as ações; exceções individuais da PY01 foram substituídas por essa seleção. Números, grupos, vínculos e fatores foram preservados.'
                 st.rerun()
             except InputError as exc: st.error(str(exc))
         st.download_button('Baixar projeto JSON',dump_project(p),'projeto_combinacoes.json','application/json',on_click='ignore')
@@ -77,6 +96,8 @@ with st.sidebar:
             replace_project(new_project());st.rerun()
 
 st.title('Combinações prontas para o Robot')
+if st.session_state.get('import_notice'):
+    st.info(st.session_state.pop('import_notice'))
 st.caption('Cadastre os casos, defina os critérios e copie a tabela. Fatores e decisões ficam disponíveis para conferência.')
 if p['name'].startswith('Exemplo didático'):
     st.info('EXEMPLO FICTÍCIO — os carregamentos e a categoria de uso servem para demonstrar a interface. Substitua-os pelos critérios do seu projeto.')
@@ -87,7 +108,7 @@ with tab_actions:
         st.subheader('Casos de carregamento')
         if p['actions']:
             summary=[{'Ativo':a['active'],'Caso':a['case'],'Nome':a['name'],'Tipo':TYPES.get(a['type'],{}).get('label','Personalizada'),
-                      'Origem':a['origin'],'Grupo':str(a['group'] or '—'),'Relação':{'exclusive':'Incompatíveis','compatible':'Compatíveis'}.get(a['compatibility'],'—'),
+                      'Grupo':str(a['group'] or '—'),'Relação':{'exclusive':'Incompatíveis','compatible':'Compatíveis'}.get(a['compatibility'],'—'),
                       'Famílias':', '.join(a['families'])} for a in p['actions']]
             st.dataframe(pd.DataFrame(summary),hide_index=True,width='stretch')
             selected=st.selectbox('Escolha uma ação para editar',range(len(p['actions'])),format_func=lambda i:f"{p['actions'][i]['case']} · {p['actions'][i]['name']}",key=f'select_{rev}')
@@ -96,13 +117,15 @@ with tab_actions:
                 st.session_state.edit_index=selected;st.session_state.edit_revision+=1;st.rerun()
             if b2.button('Duplicar ação'):
                 a=deepcopy(p['actions'][selected]);a['case']=max(x['case'] for x in p['actions'])+1
-                a['name']+=' (cópia)';a['origin']=f"AÇÃO_{a['case']}";p['actions'].append(a)
+                a['name']+=' (cópia)';a['origin']=f"CASO_{a['case']}"
+                while a['origin'] in {x['origin'] for x in p['actions']}:a['origin']+='_'
+                p['actions'].append(a)
                 st.session_state.edit_index=len(p['actions'])-1;st.session_state.edit_revision+=1;st.rerun()
             if b3.button('Excluir ação'):
                 p['actions'].pop(selected);st.session_state.edit_index=None;st.session_state.edit_revision+=1
                 st.session_state.revision+=1;st.rerun()
         else: st.info('Comece pelo cadastro ao lado ou carregue o exemplo no menu lateral.')
-        st.caption('Origem = ação física. Casos com a mesma origem são inseparáveis. Grupo = relação entre ações diferentes: em um grupo incompatível, só uma origem entra por combinação.')
+        st.caption('Para ventos alternativos, use o mesmo número de grupo e marque Incompatíveis. Grupos compatíveis permitem a presença conjunta, sem obrigá-la.')
     with right:
         idx=st.session_state.edit_index
         editing=idx is not None and idx<len(p['actions'])
@@ -111,7 +134,7 @@ with tab_actions:
         st.subheader('Editar ação' if editing else 'Adicionar ação')
         a=deepcopy(base)
         c1,c2=st.columns([1,2])
-        a['case']=c1.number_input('Número do caso no Robot',1,2147483646,int(base['case']),key=key+'case')
+        a['case']=c1.number_input('Número do caso no Robot',1,2147483646,int(base['case']),key=key+'case',help='Use o número real do caso no Robot. Ele não precisa seguir a ordem das linhas deste cadastro.')
         a['name']=c2.text_input('Nome do carregamento',base['name'],key=key+'name')
         available=[code for code in TYPES if (p['standard'],code) in GAMMA]+['CUSTOM']
         a['type']=pick('Tipo de carregamento',available,base['type'],key+'type',{**{k:v['label'] for k,v in TYPES.items()},'CUSTOM':'Personalizada — fatores informados pelo calculista'})
@@ -141,14 +164,13 @@ with tab_actions:
                 profile_row=PSI[(p['standard'],a['profile'])]
                 st.caption(f"ψ0 / ψ1 / ψ2: {' / '.join(str(v) for v in profile_row['values'])}. {profile_row.get('note','')}")
         elif nature!='Q':a['profile']=None
-        a['origin']=st.text_input('Origem / identificação da ação física',base['origin'],key=key+'origin',placeholder='Ex.: PESO_ESTRUTURA ou VENTO_X_POS',help='Mesma origem une casos que representam uma única ação física. Use origens diferentes para ações independentes.')
         a['active']=st.checkbox('Ação ativa',base['active'],key=key+'active')
-        allowed=['ELUX'] if nature=='E' else list(FAMILIES)
-        a['families']=st.multiselect('Participa das combinações',allowed,default=[f for f in base['families'] if f in allowed],format_func=FAMILIES.get,key=key+'families',help='Marque explicitamente as famílias aplicáveis a esta ação.')
+        a['families']=[f for f in p['families'] if nature!='E' or f=='ELUX']
+        if nature=='E':st.caption('Ação excepcional: participa somente de ELU excepcional, quando selecionada no menu lateral.')
         if nature and nature.startswith('G'):
             a['group']=None;a['compatibility']=None
             a['g_effect']=pick('Ponderações a considerar',['both','unfavorable','favorable'],base['g_effect'],key+'effect',{'both':'Favorável e desfavorável','unfavorable':'Somente desfavorável','favorable':'Somente favorável'})
-            st.caption('A classificação favorável/desfavorável depende do efeito verificado. Restringir exige justificativa e conhecimento dos esforços envolventes.')
+            st.caption('Escolha conforme o efeito que você está verificando. Para G, o texto de justificativa é opcional nas hipóteses favorável e desfavorável.')
         if nature in ('Q','E'):
             group=st.number_input('Grupo de compatibilidade (0 = sem grupo)',0,2147483646,int(base['group'] or 0),key=key+'group')
             a['group']=group or None
@@ -159,15 +181,30 @@ with tab_actions:
             for f in ('ELUE','ELUC'):
                 if f in a['families']:
                     a['roles'][f]=pick(f'Papel em {FAMILIES[f]}',['primary','companion'],base['roles'][f],key+f,{'primary':'Ação especial/de construção principal','companion':'Acompanhante'})
-        a['notes']=st.text_area('Justificativa / observações',base['notes'],key=key+'notes',placeholder='Fundamente aqui as restrições e os fatores manuais.')
+        peers=[x for i,x in enumerate(p['actions']) if (not editing or i!=idx) and action_nature(x)==nature]
+        matching=[x for x in peers if x['origin']==base['origin']]
+        with st.expander('Avançado: dois casos representam uma única ação física',expanded=bool(matching)):
+            st.caption('Use apenas para partes inseparáveis de uma ação, lançadas em casos diferentes. Elas entram juntas e recebem o mesmo papel e fatores. Para direções alternativas de vento, use o grupo incompatível acima.')
+            linked=st.checkbox('Vincular a outro caso da mesma ação física',value=bool(matching),key=key+'linked',disabled=not peers)
+            if linked:
+                target=pick('Caso ao qual vincular',[x['case'] for x in peers],matching[0]['case'] if matching else None,key+'linktarget',{x['case']:f"{x['case']} · {x['name']}" for x in peers})
+                a['origin']=next((x['origin'] for x in peers if x['case']==target),'')
+                st.caption('Os casos vinculados precisam ter os mesmos controles, grupo e fatores. Diferenças serão indicadas na geração.')
+            else:
+                a['origin']=base['origin'] if base['origin'] and not matching else f"CASO_{a['case']}"
+                used={x['origin'] for x in peers}
+                while a['origin'] in used:a['origin']+='_' 
+        a['notes']=st.text_area('Observações',base['notes'],key=key+'notes',placeholder='Opcional para hipóteses de G. Informe fonte/critério para fatores manuais e restrições de Q.')
         if st.button('Salvar ação' if editing else 'Adicionar ao cadastro',type='primary'):
             try:
-                if not a['name'].strip() or not a['origin'].strip():raise InputError('Preencha nome e origem da ação.')
+                if not a['name'].strip():raise InputError('Preencha o nome do carregamento.')
+                if not a['origin'].strip():raise InputError('Selecione o caso ao qual vincular ou desmarque o vínculo avançado.')
                 if any(x['case']==a['case'] for i,x in enumerate(p['actions']) if not editing or i!=idx):raise InputError('Este número de caso já está cadastrado.')
                 if len(p['actions'])>=200 and not editing:raise InputError('Limite de 200 ações.')
                 factor_record(p,a)
                 if editing:p['actions'][idx]=a
                 else:p['actions'].append(a)
+                sync_global_families(p)
                 st.session_state.edit_index=None;st.session_state.edit_revision+=1;st.rerun()
             except InputError as exc:st.error(str(exc))
         if editing and st.button('Cancelar edição'):
@@ -199,15 +236,18 @@ with tab_result:
         if rows:
             st.caption(f'{len(rows)} linhas selecionadas. Use o ícone de copiar no canto superior direito do bloco. O conteúdo não tem cabeçalho.')
             st.code(text,language=None,height=290,wrap_lines=False)
-            d1,d2,d3=st.columns(3)
-            d1.download_button('Baixar tabela Robot (.tsv)',text.encode('utf-8-sig'),'robot_combinacoes.tsv','text/tab-separated-values',on_click='ignore')
-            d2.download_button('Baixar conferência (.csv)',audit_csv(rows),'conferencia_fatores.csv','text/csv',on_click='ignore')
-            d3.download_button('Salvar entradas (.json)',dump_project(p),'projeto_combinacoes.json','application/json',on_click='ignore')
+            d1,d2=st.columns(2)
+            d1.download_button('Baixar Excel para copiar (.xlsx)',robot_xlsx(rows),'robot_combinacoes.xlsx','application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',on_click='ignore',type='primary')
+            d2.download_button('Baixar texto tabulado (.tsv)',text.encode('utf-8-sig'),'robot_combinacoes.tsv','text/tab-separated-values',on_click='ignore')
+            st.caption('Excel: abra o .xlsx, na aba ROBOT copie a região preenchida desde A1 e cole na coluna Nome do Robot. O arquivo já tem uma célula para cada caso e coeficiente; não precisa configurar delimitadores. O separador decimal acima vale para o texto; no Excel é o definido pelo seu sistema.')
+            with st.expander('Arquivos de conferência e projeto'):
+                st.download_button('Baixar conferência (.csv)',audit_csv(rows),'conferencia_fatores.csv','text/csv',on_click='ignore')
+                st.download_button('Salvar entradas (.json)',dump_project(p),'projeto_combinacoes.json','application/json',on_click='ignore')
             with st.expander('Conferir uma combinação',expanded=True):
                 ci=st.selectbox('Combinação',range(len(rows)),format_func=lambda i:rows[i].name,key='inspect_'+result.signature+'_'+'_'.join(families))
                 c=rows[ci]
-                st.write(RULES[c.family]);st.caption('Origens principais que produzem esta combinação: '+', '.join(c.leaders))
-                st.dataframe(pd.DataFrame(c.detail).rename(columns={'case':'Caso','name':'Ação','origin':'Origem','gamma':'γ','reduction':'ψ / redução','coefficient':'Coeficiente','role':'Papel','source_gamma':'Fonte γ','source_psi':'Fonte ψ','notes':'Justificativa'}),hide_index=True,width='stretch')
+                st.write(RULES[c.family]);st.caption('Ações principais que produzem esta combinação: '+', '.join(c.leaders))
+                st.dataframe(pd.DataFrame(c.detail).drop(columns=['origin']).rename(columns={'case':'Caso','name':'Ação','origin':'Origem','gamma':'γ','reduction':'ψ / redução','coefficient':'Coeficiente','role':'Papel','source_gamma':'Fonte γ','source_psi':'Fonte ψ','notes':'Justificativa'}),hide_index=True,width='stretch')
                 st.caption('Quando rotas diferentes geram coeficientes idênticos, a tabela mostra a primeira rota; a lista de origens registra as alternativas equivalentes.')
         else:st.info('Selecione ao menos uma família para exportar.')
     elif 'result' not in st.session_state:st.info('Preencha as entradas e clique em Gerar combinações. Entradas incompletas ou conflitantes serão indicadas aqui.')
@@ -224,22 +264,27 @@ with tab_bank:
     for f,label in FAMILIES.items():st.write(f'**{label}:** {RULES[f]}')
     st.markdown('''A escolha de **ψ efetivo** nas situações especiais, de construção e excepcionais deve considerar duração e condição normativa; o aplicativo exige escolha e justificativa. A opção “principal” especial/de construção vale para aquela situação; as demais variáveis entram como acompanhantes.
 
-As permanentes da **mesma origem** variam juntas. Na ponderação agrupada, todas as permanentes diretas compartilham a ponderação e devem ter controles coerentes. Compatibilidade não força simultaneidade; para isso use a mesma origem apenas quando se tratar da mesma ação física, ou a presença obrigatória com justificativa.
+Na opção de **γ do conjunto**, todas as permanentes diretas compartilham a ponderação favorável/desfavorável. Na opção **γ por tipo**, cada ação usa sua linha da tabela. Casos vinculados no controle avançado representam uma mesma ação física e variam juntos. Grupos compatíveis permitem simultaneidade; grupos incompatíveis permitem apenas uma ação por vez. Nenhuma dessas opções caracteriza uma ação como truncada.
 
 A rotina cobre combinações estáticas com fatores escalares. Não trata automaticamente sismo, incêndio, fadiga, análise não linear, imperfeições ou regras específicas externas ao banco. Não é uma memória de cálculo.''')
     st.caption(f'Banco {BANK["version"]} · identificação {BANK_HASH[:16]}')
 
 with tab_help:
     st.subheader('Do cadastro ao Robot')
-    st.markdown('''1. Escolha a norma, as famílias e a forma de ponderação no menu lateral.
-2. Cadastre cada caso com o **mesmo número usado no Robot**. Marque as famílias aplicáveis.
-3. Dê uma origem distinta a cada ação independente. Para quatro ventos alternativos, use quatro origens e um mesmo grupo incompatível.
-4. Para reduzir combinações, ajuste ponderações de G, presença de Q ou elegibilidade como principal. Registre a justificativa técnica.
-5. Clique em **Gerar combinações**, confira fatores e copie o bloco tabulado para a coluna **Nome** da tabela do Robot. Faça a primeira colagem em uma cópia do modelo e confira os coeficientes e a classificação das famílias.
-6. Baixe o projeto JSON para continuar depois. O TSV pode ser aberto no Excel como texto separado por tabulações e também copiado para o Robot.
+    st.markdown('''1. Escolha a norma e as famílias de combinação no menu lateral. Essa seleção vale para todas as ações; ações excepcionais participam apenas de ELU excepcional.
+2. Selecione como aplicar γ. **Por tipo** usa os coeficientes específicos de aço, carga permanente, vento etc. **Em conjunto** usa os coeficientes da linha normativa de ações agrupadas. Isso não significa considerar ações truncadas.
+3. Cadastre cada carregamento com o **mesmo número do caso no Robot** e um nome. Se a sobrecarga é o caso 4 no Robot, cadastre 4 aqui, mesmo que seja a terceira linha da lista.
+4. Para quatro ventos alternativos, use quatro casos com o mesmo grupo e relação **Incompatíveis**. Deixe o vínculo avançado desmarcado: ele serve para partes inseparáveis de uma única ação física.
+5. Ajuste as hipóteses de G e os controles de Q conforme sua análise. As hipóteses favorável/desfavorável de G não exigem texto de justificativa.
+6. Gere as combinações e copie o texto, ou baixe o **Excel (.xlsx)** e copie as células da aba ROBOT a partir de A1. Cole na coluna **Nome** do Robot e confira a classificação ELU/ELS. O nome não configura essa classificação.
+7. Baixe o projeto JSON para continuar depois. Projetos PY01 podem ser reabertos; a seleção global de famílias substitui as antigas seleções individuais.
 
-**Exemplo didático:** 1 permanente, 1 sobrecarga e 4 ventos incompatíveis. G com duas ponderações; variáveis com presença/ausência. Resultado esperado: 28 ELU normais, 14 ELS raras, 10 ELS frequentes e 2 ELS quase permanentes.
+**Exemplo didático:** 1 permanente, 1 sobrecarga e 4 ventos incompatíveis. Resultado esperado: 28 ELU normais, 14 ELS raras, 10 ELS frequentes e 2 ELS quase permanentes.
 
-**Por que pode haver muitas combinações?** Além da variável principal, o motor considera presenças e ausências permitidas e as ponderações de G. Os limites interrompem a geração inteira: uma saída parcial nunca é liberada como completa.
+**Se o Excel abrir o TSV em uma coluna:** use a exportação .xlsx, que já contém células separadas. Evite copiar a célula única que contém a linha inteira.
 
-**Dados da sessão:** o aplicativo não grava automaticamente seus projetos em um banco. Em uma publicação Streamlit, o servidor processa os dados enviados. Configure a visibilidade do aplicativo conforme o uso pretendido.''')
+**Se um caso mudar depois da colagem:** confira primeiro o número real do caso na lista de carregamentos do Robot. Os números do cadastro são exportados literalmente, sem renumeração.
+
+**Geração:** o aplicativo mantém proteções internas contra excesso de combinações e interrompe com uma mensagem, sem liberar resultados parciais. Os controles numéricos foram retirados da interface.
+
+**Dados:** baixe o JSON para guardar o projeto. A sessão não é um arquivo salvo; em uma publicação Streamlit, o servidor processa as entradas enviadas.''')

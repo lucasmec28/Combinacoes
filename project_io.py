@@ -3,7 +3,7 @@ import csv
 import io
 import json
 from copy import deepcopy
-from engine import new_project, new_action, SCHEMA_VERSION, InputError, BANK_HASH, BANK, FAMILIES, TYPES, PROFILES
+from engine import new_project, new_action, SCHEMA_VERSION, APP_VERSION, InputError, BANK_HASH, BANK, FAMILIES, TYPES, PROFILES, sync_global_families
 
 
 def dump_project(project):
@@ -16,7 +16,7 @@ def load_project(data):
     try:
         p = json.loads(data)
         template = new_project()
-        if not isinstance(p, dict) or p.get('schema') != SCHEMA_VERSION:
+        if not isinstance(p, dict) or p.get('schema') not in (1, SCHEMA_VERSION):
             raise ValueError('Versão de projeto incompatível.')
         if set(p) != set(template):
             raise ValueError('Estrutura de projeto incompleta ou desconhecida.')
@@ -81,7 +81,9 @@ def load_project(data):
                         raise ValueError('Quantidade ou tipo de fatores manuais inválidos.')
         # Também rejeita NaN/Infinity, aceitos pelo decodificador JSON padrão.
         dump_project(p)
-        return deepcopy(p)
+        p['schema']=SCHEMA_VERSION
+        p['app_version']=APP_VERSION
+        return sync_global_families(deepcopy(p))
     except (ValueError, TypeError, KeyError) as exc:
         raise InputError(f'Não foi possível abrir: {exc}') from None
 
@@ -95,7 +97,7 @@ def robot_tsv(combinations, decimal_comma=True):
     rows = [[c.name] + [v for cid,coef in c.cases for v in (str(cid),number_text(coef,decimal_comma))] for c in combinations]
     width = max((len(r) for r in rows),default=0)
     # Retângulo de células, sem cabeçalho e sem coluna automática de numeração.
-    return '\n'.join('\t'.join(r + ['']*(width-len(r))) for r in rows)
+    return '\r\n'.join('\t'.join(r + ['']*(width-len(r))) for r in rows)
 
 
 def audit_csv(combinations):

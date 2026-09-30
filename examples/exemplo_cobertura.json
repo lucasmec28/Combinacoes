@@ -1,6 +1,6 @@
 {
-  "schema": 1,
-  "app_version": "PY01",
+  "schema": 2,
+  "app_version": "PY02",
   "bank_hash": "a94e4f4c1222ce43b3905be60ac644f94bda35b9048a7627829dfa8a28f19ba5",
   "name": "Exemplo didático — cobertura e quatro ventos",
   "standard": "NBR 8800:2024",
