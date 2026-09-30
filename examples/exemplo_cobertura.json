@@ -1,0 +1,178 @@
+{
+  "schema": 1,
+  "app_version": "PY01",
+  "bank_hash": "a94e4f4c1222ce43b3905be60ac644f94bda35b9048a7627829dfa8a28f19ba5",
+  "name": "Exemplo didático — cobertura e quatro ventos",
+  "standard": "NBR 8800:2024",
+  "families": [
+    "ELUN",
+    "ELSR",
+    "ELSF",
+    "ELSQP"
+  ],
+  "g_mode": "separate",
+  "q_mode": "separate",
+  "occupancy_band": null,
+  "temperature_separate": null,
+  "effective": {
+    "ELUE": null,
+    "ELUC": null,
+    "ELUX": null
+  },
+  "effective_reason": "",
+  "prefix": "EX_",
+  "limit": 20000,
+  "visit_limit": 500000,
+  "actions": [
+    {
+      "case": 1,
+      "name": "Peso próprio",
+      "type": "ACO",
+      "profile": null,
+      "origin": "G1",
+      "active": true,
+      "group": null,
+      "compatibility": null,
+      "g_effect": "both",
+      "presence": "optional",
+      "primary": true,
+      "families": [
+        "ELUN",
+        "ELSR",
+        "ELSF",
+        "ELSQP"
+      ],
+      "roles": {
+        "ELUE": "companion",
+        "ELUC": "companion"
+      },
+      "notes": "Exemplo fictício para teste.",
+      "custom": null
+    },
+    {
+      "case": 2,
+      "name": "Sobrecarga de cobertura",
+      "type": "OUT",
+      "profile": "USO3",
+      "origin": "Q2",
+      "active": true,
+      "group": null,
+      "compatibility": null,
+      "g_effect": "both",
+      "presence": "optional",
+      "primary": true,
+      "families": [
+        "ELUN",
+        "ELSR",
+        "ELSF",
+        "ELSQP"
+      ],
+      "roles": {
+        "ELUE": "companion",
+        "ELUC": "companion"
+      },
+      "notes": "Exemplo fictício para teste.",
+      "custom": null
+    },
+    {
+      "case": 3,
+      "name": "Vento +X",
+      "type": "VEN",
+      "profile": "VEN",
+      "origin": "Q3",
+      "active": true,
+      "group": 1,
+      "compatibility": "exclusive",
+      "g_effect": "both",
+      "presence": "optional",
+      "primary": true,
+      "families": [
+        "ELUN",
+        "ELSR",
+        "ELSF",
+        "ELSQP"
+      ],
+      "roles": {
+        "ELUE": "companion",
+        "ELUC": "companion"
+      },
+      "notes": "Exemplo fictício para teste.",
+      "custom": null
+    },
+    {
+      "case": 4,
+      "name": "Vento -X",
+      "type": "VEN",
+      "profile": "VEN",
+      "origin": "Q4",
+      "active": true,
+      "group": 1,
+      "compatibility": "exclusive",
+      "g_effect": "both",
+      "presence": "optional",
+      "primary": true,
+      "families": [
+        "ELUN",
+        "ELSR",
+        "ELSF",
+        "ELSQP"
+      ],
+      "roles": {
+        "ELUE": "companion",
+        "ELUC": "companion"
+      },
+      "notes": "Exemplo fictício para teste.",
+      "custom": null
+    },
+    {
+      "case": 5,
+      "name": "Vento +Y",
+      "type": "VEN",
+      "profile": "VEN",
+      "origin": "Q5",
+      "active": true,
+      "group": 1,
+      "compatibility": "exclusive",
+      "g_effect": "both",
+      "presence": "optional",
+      "primary": true,
+      "families": [
+        "ELUN",
+        "ELSR",
+        "ELSF",
+        "ELSQP"
+      ],
+      "roles": {
+        "ELUE": "companion",
+        "ELUC": "companion"
+      },
+      "notes": "Exemplo fictício para teste.",
+      "custom": null
+    },
+    {
+      "case": 6,
+      "name": "Vento -Y",
+      "type": "VEN",
+      "profile": "VEN",
+      "origin": "Q6",
+      "active": true,
+      "group": 1,
+      "compatibility": "exclusive",
+      "g_effect": "both",
+      "presence": "optional",
+      "primary": true,
+      "families": [
+        "ELUN",
+        "ELSR",
+        "ELSF",
+        "ELSQP"
+      ],
+      "roles": {
+        "ELUE": "companion",
+        "ELUC": "companion"
+      },
+      "notes": "Exemplo fictício para teste.",
+      "custom": null
+    }
+  ]
+}

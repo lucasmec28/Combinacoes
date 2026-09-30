@@ -1,0 +1,47 @@
+test_duplicate_origin_and_case (test_app.InterfaceTests.test_duplicate_origin_and_case) ... 2026-09-29 22:36:50.639 WARNING streamlit.runtime.scriptrunner_utils.script_run_context: Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+ok
+test_empty_validation (test_app.InterfaceTests.test_empty_validation) ... 2026-09-29 22:36:51.241 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+ok
+test_example_generate_edit_stale_regenerate (test_app.InterfaceTests.test_example_generate_edit_stale_regenerate) ... 2026-09-29 22:36:51.442 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+ok
+test_filter_and_delete (test_app.InterfaceTests.test_filter_and_delete) ... 2026-09-29 22:36:51.889 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+ok
+test_type_change_exceptional (test_app.InterfaceTests.test_type_change_exceptional) ... 2026-09-29 22:36:52.237 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+ok
+test_bank_version (test_engine.EngineTests.test_bank_version) ... ok
+test_conflicting_bundle (test_engine.EngineTests.test_conflicting_bundle) ... ok
+test_csv_text_injection_escaped (test_engine.EngineTests.test_csv_text_injection_escaped) ... ok
+test_duplicate_case (test_engine.EngineTests.test_duplicate_case) ... ok
+test_effective_explicit (test_engine.EngineTests.test_effective_explicit) ... ok
+test_example_counts (test_engine.EngineTests.test_example_counts) ... ok
+test_exclusive_required_conflict (test_engine.EngineTests.test_exclusive_required_conflict) ... ok
+test_favorable_restriction (test_engine.EngineTests.test_favorable_restriction) ... ok
+test_group_relation_conflict (test_engine.EngineTests.test_group_relation_conflict) ... ok
+test_grouped_permanent_moves_together (test_engine.EngineTests.test_grouped_permanent_moves_together) ... ok
+test_grouped_q_rule (test_engine.EngineTests.test_grouped_q_rule) ... ok
+test_import_incomplete_project (test_engine.EngineTests.test_import_incomplete_project) ... ok
+test_inactive_case (test_engine.EngineTests.test_inactive_case) ... ok
+test_invalid_imports (test_engine.EngineTests.test_invalid_imports) ... ok
+test_limits_no_partial_result (test_engine.EngineTests.test_limits_no_partial_result) ... ok
+test_manual_factors_linked_to_norm (test_engine.EngineTests.test_manual_factors_linked_to_norm) ... ok
+test_no_cross_norm_fallback (test_engine.EngineTests.test_no_cross_norm_fallback) ... ok
+test_no_principal_in_qp (test_engine.EngineTests.test_no_principal_in_qp) ... ok
+test_no_principal_normal_rejected (test_engine.EngineTests.test_no_principal_normal_rejected) ... ok
+test_norm_specific_factors (test_engine.EngineTests.test_norm_specific_factors) ... ok
+test_output_plain_rectangle (test_engine.EngineTests.test_output_plain_rectangle) ... ok
+test_permanent_only (test_engine.EngineTests.test_permanent_only) ... ok
+test_physical_bundle (test_engine.EngineTests.test_physical_bundle) ... ok
+test_reference_vectors_excel_vba (test_engine.EngineTests.test_reference_vectors_excel_vba) ... ok
+test_required_excludes_absence (test_engine.EngineTests.test_required_excludes_absence) ... ok
+test_restrictions_require_reason (test_engine.EngineTests.test_restrictions_require_reason) ... ok
+test_roundtrip_and_signature (test_engine.EngineTests.test_roundtrip_and_signature) ... ok
+test_special_construction_exceptional (test_engine.EngineTests.test_special_construction_exceptional) ... ok
+test_winds_compatible (test_engine.EngineTests.test_winds_compatible) ... ok
+test_winds_exclusive (test_engine.EngineTests.test_winds_exclusive) ... ok
+test_zero_and_decimal_format (test_engine.EngineTests.test_zero_and_decimal_format) ... ok
+test_zero_psi_winds_absent_qp (test_engine.EngineTests.test_zero_psi_winds_absent_qp) ... ok
+
+----------------------------------------------------------------------
+Ran 37 tests in 1.931s
+
+OK
