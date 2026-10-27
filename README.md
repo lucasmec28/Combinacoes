@@ -1,6 +1,6 @@
 # Combinações ELU / ELS para Robot
 
-Aplicativo Python + Streamlit, em português, para cadastrar ações e gerar combinações com saída tabulada para o Autodesk Robot Structural Analysis. Versão PY02, preparada para GitHub e Streamlit Community Cloud.
+Aplicativo Python + Streamlit, em português, para cadastrar ações e gerar combinações com saída tabulada para o Autodesk Robot Structural Analysis. Motor PY02 preservado, saídas PY03, preparada para GitHub e Streamlit Community Cloud.
 
 ## Publicar pelo GitHub + Streamlit
 
@@ -55,9 +55,9 @@ Abra o endereço exibido no terminal, normalmente `http://localhost:8501`.
 
 O conteúdo não tem cabeçalho e segue:
 
-`Nome → Caso → Coeficiente → Caso → Coeficiente → …`
+`Nome → Tipo de combinação → Caso → Coeficiente → Caso → Coeficiente → …`
 
-Cole a partir da coluna **Nome**. Não é exportada a coluna de numeração automática “Combinações”. A estrutura segue o formato de ida e volta Excel/Robot validado na conversa. Os números precisam coincidir com os do modelo: se a terceira ação cadastrada corresponde ao caso 4 no Robot, informe 4 no cadastro. O aplicativo não renumera casos. A troca relatada de 3 para 1 foi esclarecida pelo usuário: o caso real era 4. A nova exportação XLSX ainda requer conferência na instalação do Robot. Na primeira colagem, confira em uma cópia do modelo os casos, os coeficientes, a quantidade de linhas e a classificação nativa ELU/ELS. O prefixo do nome **não** configura o tipo de combinação do Robot.
+Cole a partir da coluna **Nome**. Não é exportada a coluna de numeração automática “Combinações”. A estrutura segue o formato de ida e volta Excel/Robot validado na conversa. Os números precisam coincidir com os do modelo: se a terceira ação cadastrada corresponde ao caso 4 no Robot, informe 4 no cadastro. O aplicativo não renumera casos. A troca relatada de 3 para 1 foi esclarecida pelo usuário: o caso real era 4. A nova exportação XLSX ainda requer conferência na instalação do Robot. Na primeira colagem, confira em uma cópia do modelo os casos, os coeficientes, a quantidade de linhas e a classificação nativa ELU/ELS. A coluna de tipo agora contém ELU/ELS (padrão) ou ULS/SLS (opcional). A classificação vem da família, não do nome. A aceitação literal desses rótulos por colagem ainda precisa ser conferida no Robot do usuário.
 
 Para trabalhar com Excel, use o **XLSX**: abra a aba **ROBOT**, selecione a região preenchida desde A1 e copie. A aba não contém cabeçalho; casos e coeficientes são valores numéricos em células separadas. O nome definido **COPIAR_ROBOT** seleciona exatamente o retângulo de dados pela Caixa de Nome do Excel. Isso dispensa configurar o delimitador do TSV. No XLSX o separador decimal é o do Excel; a seleção vírgula/ponto do aplicativo vale somente para o texto. A conferência CSV é outro arquivo: não é a tabela a colar no Robot.
 
@@ -106,7 +106,7 @@ Proteções internas (retiradas dos campos da interface): 200 ações, até 50.0
 python -m unittest discover -s tests -v
 ```
 
-Foram executados 45 testes do motor, arquivos, migração e interface via Streamlit AppTest. As adições verificam seleção global, cadastro sem origem manual, vínculos avançados, G favorável sem observação e exportação de casos não consecutivos 1, 2 e 4 para células numéricas do Excel. O exemplo tem 28 ELU normais, 14 ELS raras, 10 ELS frequentes e 2 ELS quase permanentes. Seus vetores foram comparados com a referência exportada da versão anterior, além de testes específicos de incompatibilidade, mesma origem, restrições, fatores por norma, situações especiais/excepcionais e limites.
+Na versão PY02 foram executados 45 testes do motor, arquivos, migração e interface via Streamlit AppTest. As adições verificam seleção global, cadastro sem origem manual, vínculos avançados, G favorável sem observação e exportação de casos não consecutivos 1, 2 e 4 para células numéricas do Excel. O exemplo tem 28 ELU normais, 14 ELS raras, 10 ELS frequentes e 2 ELS quase permanentes. Seus vetores foram comparados com a referência exportada da versão anterior, além de testes específicos de incompatibilidade, mesma origem, restrições, fatores por norma, situações especiais/excepcionais e limites.
 
 A comparação com a versão anterior é uma verificação de regressão, não uma certificação normativa independente. O AppTest verifica eventos e estado da interface; não executa a área de transferência do navegador nem a colagem no Robot.
 
@@ -124,6 +124,16 @@ Estrutura:
 
 ## Atualizar uma instalação PY01
 
-Extraia o novo pacote e envie todos os arquivos e subpastas para a mesma raiz do repositório GitHub, substituindo os anteriores. Inclua **excel_export.py** e o novo **requirements.txt**, que acrescenta openpyxl. Envie também `.streamlit/config.toml` para atualizar o tema. Mantenha `app.py` como arquivo principal no Streamlit. Reabra seu JSON na aplicação atualizada e confira o rótulo **PY02** no menu. O banco normativo não foi alterado.
+Extraia o novo pacote e envie todos os arquivos e subpastas para a mesma raiz do repositório GitHub, substituindo os anteriores. Inclua **excel_export.py** e o novo **requirements.txt**, que acrescenta openpyxl. Envie também `.streamlit/config.toml` para atualizar o tema. Mantenha `app.py` como arquivo principal no Streamlit. Reabra seu JSON na aplicação atualizada e confira o rótulo **saídas PY03** no menu. O banco normativo não foi alterado.
 
 Projetos carregam a identificação do banco e recusam versões diferentes. Mudanças de fatores devem ser revisadas explicitamente; não edite o identificador de um projeto antigo apenas para contornar esse controle.
+
+
+
+## Saídas PY03 em 27 de outubro de 2026
+
+- Tipo de combinação é a segunda coluna, entre Nome e o primeiro Caso, no TSV e XLSX.
+- Word exporta apenas as famílias selecionadas em lista editável numerada desde 1, com nomes das ações e vírgula decimal, sem equação normativa. Os números são posições da lista MC, não IDs automáticos do Robot.
+- Coeficientes exibem no mínimo duas casas, preservando precisão adicional. Famílias, casos, fatores, sinais e banco normativo não foram alterados.
+- Dependência nova: python-docx 1.2.0. Inclua word_export.py na atualização.
+- 54 testes executados com sucesso, incluindo AppTest, seleção de famílias, mudança de entradas e exportações. Inspeção de colagem no Robot continua pendente; revisão de saídas não representa validação normativa nova.

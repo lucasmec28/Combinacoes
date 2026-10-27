@@ -32,16 +32,16 @@ class PY02Tests(unittest.TestCase):
         p=self.platform();r=generate(p)
         self.assertEqual(r.counts,{'ELUN':8,'ELSF':2})
         wb=load_workbook(BytesIO(robot_xlsx(r.combinations)))
-        ws=wb['ROBOT'];self.assertEqual(ws['F1'].value,4);self.assertEqual(ws['F1'].data_type,'n')
-        self.assertEqual(ws['G1'].value,1.5);self.assertEqual(ws['A1'].value,'EX_ELUN_00001')
-        self.assertEqual(ws.max_row,10);self.assertEqual(ws.max_column,7)
-        self.assertEqual(wb.defined_names['COPIAR_ROBOT'].attr_text,"'ROBOT'!$A$1:$G$10")
+        ws=wb['ROBOT'];self.assertEqual(ws['G1'].value,4);self.assertEqual(ws['G1'].data_type,'n')
+        self.assertEqual(ws['H1'].value,1.5);self.assertEqual(ws['A1'].value,'EX_ELUN_00001')
+        self.assertEqual(ws.max_row,10);self.assertEqual(ws.max_column,8)
+        self.assertEqual(wb.defined_names['COPIAR_ROBOT'].attr_text,"'ROBOT'!$A$1:$H$10")
         for row,c in zip(ws.iter_rows(values_only=True),r.combinations):
-            pairs=tuple((row[i],Decimal(str(row[i+1]))) for i in range(1,len(row),2) if row[i] is not None)
+            pairs=tuple((row[i],Decimal(str(row[i+1]))) for i in range(2,len(row),2) if row[i] is not None)
             self.assertEqual(pairs,c.cases)
         for line,c in zip(robot_tsv(r.combinations).splitlines(),r.combinations):
             fields=line.split('\t')
-            self.assertEqual([int(x) for x in fields[1::2] if x],[cid for cid,coef in c.cases])
+            self.assertEqual([int(x) for x in fields[2::2] if x],[cid for cid,coef in c.cases])
     def test_favorable_without_note_for_all_standards(self):
         for std in ('NBR 8800:2024','NBR 14762:2010','NBR 8681:2025'):
             p=self.platform();p['standard']=std;p['actions'][0].update(g_effect='favorable',notes='')
@@ -90,3 +90,4 @@ class PY02Tests(unittest.TestCase):
         self.assertEqual(actions[-1]['origin'],actions[0]['origin'])
 
 if __name__=='__main__':unittest.main()
+

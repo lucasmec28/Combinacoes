@@ -8,6 +8,7 @@ from engine import (BANK, BANK_HASH, TYPES, PROFILES, GAMMA, PSI, FAMILIES, RULE
                     generate, fingerprint, sync_global_families, action_nature, APP_VERSION, SCHEMA_VERSION)
 from project_io import dump_project, load_project, robot_tsv, audit_csv
 from excel_export import robot_xlsx
+from word_export import combinations_docx
 
 st.set_page_config(page_title='Combinações • Robot', page_icon='🏗️', layout='wide')
 st.markdown('''<style>
@@ -54,7 +55,7 @@ p['app_version']=APP_VERSION
 rev=st.session_state.revision
 with st.sidebar:
     st.markdown('### COMBINAÇÕES / ROBOT')
-    st.caption(f'Estruturas metálicas · ELU + ELS · {APP_VERSION}')
+    st.caption(f'Estruturas metálicas · ELU + ELS · {APP_VERSION} · saídas PY03')
     p['name']=st.text_input('Projeto',value=p['name'],key=f'name_{rev}',placeholder='Nome da estrutura')
     p['standard']=pick('Norma de referência',BANK['standards'],p['standard'],f'std_{rev}',
         help='Os fatores são buscados exclusivamente nesta norma. NBR 8800 inclui a errata de 2025.')
@@ -213,7 +214,7 @@ with tab_actions:
 
 with tab_result:
     st.subheader('Gerar, conferir e copiar')
-    st.caption('A saída usa somente casos numéricos e coeficientes. Os nomes são gerados com o prefixo escolhido e a família de combinação.')
+    st.caption('A saída inclui Nome, Tipo de combinação (ELU/ELS ou ULS/SLS), casos numéricos e coeficientes. Os nomes são gerados com o prefixo escolhido e a família de combinação.')
     if st.button('Gerar combinações',type='primary'):
         st.session_state.pop('result',None)
         try:
@@ -231,14 +232,17 @@ with tab_result:
         families=st.multiselect('Famílias a copiar / baixar',list(result.counts),default=list(result.counts),format_func=FAMILIES.get,key='export_families_'+result.signature)
         rows=[c for c in result.combinations if c.family in families]
         decimal_comma=st.radio('Separador decimal',[True,False],format_func=lambda v:'Vírgula (1,25)' if v else 'Ponto (1.25)',horizontal=True)
-        text=robot_tsv(rows,decimal_comma)
-        st.info('Robot: cole a partir da coluna Nome. A sequência é Nome | Caso | Coeficiente | Caso | Coeficiente… A numeração de Combinações é automática. Confira também a classificação ELU/ELS no Robot: o nome não configura essa classificação.')
+        type_language=st.radio('Tipo de combinação no Robot', ['pt','en'], format_func=lambda v:'ELU / ELS' if v=='pt' else 'ULS / SLS', horizontal=True, help='Escolha os rótulos usados no seu Robot. Confira a classificação após colar; a aceitação depende do idioma/configuração da tabela.')
+        text=robot_tsv(rows,decimal_comma,type_language)
+        st.info('Robot: cole a partir da coluna Nome. A sequência é Nome | Tipo de combinação | Caso | Coeficiente | Caso | Coeficiente… Mantenha essa ordem de colunas no Robot. A numeração de Combinações é automática. Confira se o Robot aceitou os tipos e os coeficientes após a colagem.')
         if rows:
             st.caption(f'{len(rows)} linhas selecionadas. Use o ícone de copiar no canto superior direito do bloco. O conteúdo não tem cabeçalho.')
             st.code(text,language=None,height=290,wrap_lines=False)
-            d1,d2=st.columns(2)
-            d1.download_button('Baixar Excel para copiar (.xlsx)',robot_xlsx(rows),'robot_combinacoes.xlsx','application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',on_click='ignore',type='primary')
+            d1,d2,d3=st.columns(3)
+            d1.download_button('Baixar Excel para copiar (.xlsx)',robot_xlsx(rows,type_language),'robot_combinacoes.xlsx','application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',on_click='ignore',type='primary')
             d2.download_button('Baixar texto tabulado (.tsv)',text.encode('utf-8-sig'),'robot_combinacoes.tsv','text/tab-separated-values',on_click='ignore')
+            d3.download_button('Baixar Word para MC (.docx)',combinations_docx(rows,p['name']),'combinacoes_mc.docx','application/vnd.openxmlformats-officedocument.wordprocessingml.document',on_click='ignore')
+            st.caption('Word: lista editável apenas das famílias selecionadas, numerada de 1 em diante, com os nomes cadastrados e vírgula decimal. Sem equação normativa e sem arredondar coeficientes adicionais.')
             st.caption('Excel: abra o .xlsx, na aba ROBOT copie a região preenchida desde A1 e cole na coluna Nome do Robot. O arquivo já tem uma célula para cada caso e coeficiente; não precisa configurar delimitadores. O separador decimal acima vale para o texto; no Excel é o definido pelo seu sistema.')
             with st.expander('Arquivos de conferência e projeto'):
                 st.download_button('Baixar conferência (.csv)',audit_csv(rows),'conferencia_fatores.csv','text/csv',on_click='ignore')
@@ -276,8 +280,9 @@ with tab_help:
 3. Cadastre cada carregamento com o **mesmo número do caso no Robot** e um nome. Se a sobrecarga é o caso 4 no Robot, cadastre 4 aqui, mesmo que seja a terceira linha da lista.
 4. Para quatro ventos alternativos, use quatro casos com o mesmo grupo e relação **Incompatíveis**. Deixe o vínculo avançado desmarcado: ele serve para partes inseparáveis de uma única ação física.
 5. Ajuste as hipóteses de G e os controles de Q conforme sua análise. As hipóteses favorável/desfavorável de G não exigem texto de justificativa.
-6. Gere as combinações e copie o texto, ou baixe o **Excel (.xlsx)** e copie as células da aba ROBOT a partir de A1. Cole na coluna **Nome** do Robot e confira a classificação ELU/ELS. O nome não configura essa classificação.
-7. Baixe o projeto JSON para continuar depois. Projetos PY01 podem ser reabertos; a seleção global de famílias substitui as antigas seleções individuais.
+6. Gere as combinações e copie o texto, ou baixe o **Excel (.xlsx)** e copie as células da aba ROBOT a partir de A1. Cole na coluna **Nome** do Robot com **Tipo de combinação** imediatamente ao lado, antes de Caso e Coeficiente. A saída já inclui ELU/ELS (ou ULS/SLS); confira se o Robot aceitou esses rótulos.
+7. Para a memória de cálculo, baixe o Word com as combinações selecionadas, em lista numerada e editável, sem a equação normativa.
+8. Baixe o projeto JSON para continuar depois. Projetos PY01 podem ser reabertos; a seleção global de famílias substitui as antigas seleções individuais.
 
 **Exemplo didático:** 1 permanente, 1 sobrecarga e 4 ventos incompatíveis. Resultado esperado: 28 ELU normais, 14 ELS raras, 10 ELS frequentes e 2 ELS quase permanentes.
 
@@ -288,3 +293,4 @@ with tab_help:
 **Geração:** o aplicativo mantém proteções internas contra excesso de combinações e interrompe com uma mensagem, sem liberar resultados parciais. Os controles numéricos foram retirados da interface.
 
 **Dados:** baixe o JSON para guardar o projeto. A sessão não é um arquivo salvo; em uma publicação Streamlit, o servidor processa as entradas enviadas.''')
+

@@ -93,8 +93,16 @@ def number_text(d, decimal_comma=True):
     return s.replace('.', ',') if decimal_comma else s
 
 
-def robot_tsv(combinations, decimal_comma=True):
-    rows = [[c.name] + [v for cid,coef in c.cases for v in (str(cid),number_text(coef,decimal_comma))] for c in combinations]
+def combination_type(family, language='pt'):
+    """Tipo ELU/ELS pelo identificador da família, nunca pelo nome editável."""
+    if family not in FAMILIES or language not in ('pt', 'en'):
+        raise InputError('Família ou idioma de tipo de combinação desconhecido.')
+    ultimate = family.startswith('ELU')
+    return ('ELU' if ultimate else 'ELS') if language == 'pt' else ('ULS' if ultimate else 'SLS')
+
+
+def robot_tsv(combinations, decimal_comma=True, type_language='pt'):
+    rows = [[c.name, combination_type(c.family, type_language)] + [v for cid,coef in c.cases for v in (str(cid),number_text(coef,decimal_comma))] for c in combinations]
     width = max((len(r) for r in rows),default=0)
     # Retângulo de células, sem cabeçalho e sem coluna automática de numeração.
     return '\r\n'.join('\t'.join(r + ['']*(width-len(r))) for r in rows)
@@ -112,3 +120,4 @@ def audit_csv(combinations):
             row={k: "'"+v if isinstance(v,str) and v.startswith(('=','+','-','@','\t','\r')) else v for k,v in row.items()}
             writer.writerow(row)
     return out.getvalue().encode('utf-8-sig')
+

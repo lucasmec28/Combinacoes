@@ -114,7 +114,7 @@ class EngineTests(unittest.TestCase):
         text=robot_tsv(generate(self.p).combinations)
         lines=text.splitlines();self.assertEqual(len(lines),54)
         self.assertEqual(len({len(line.split('\t')) for line in lines}),1)
-        self.assertTrue(lines[0].startswith('EX_ELUN_00001\t1\t1,25'))
+        self.assertTrue(lines[0].startswith('EX_ELUN_00001\tELU\t1\t1,25'))
         self.assertNotIn('Nome',text)
     def test_roundtrip_and_signature(self):
         p=load_project(dump_project(self.p));self.assertEqual(p,self.p)
@@ -140,3 +140,4 @@ class EngineTests(unittest.TestCase):
         self.assertIn("'=1+1",audit_csv(generate(self.p).combinations).decode('utf-8-sig'))
 
 if __name__=='__main__':unittest.main()
+
