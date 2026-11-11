@@ -159,6 +159,22 @@ class PY04EngineTests(unittest.TestCase):
 
 
 class PY04InterfaceTests(unittest.TestCase):
+    def test_reload_of_previous_engine_during_deployment(self):
+        import importlib
+        import engine
+        try:
+            engine.APP_VERSION='PY02'
+            del engine.active_variable_group_count
+            at=AppTest.from_file(str(Path(__file__).resolve().parents[1]/'app.py'),default_timeout=30).run()
+            self.assertFalse(at.exception)
+            self.assertEqual(engine.APP_VERSION,'PY04')
+            next(b for b in at.button if b.label=='Carregar exemplo didático').click().run()
+            next(b for b in at.button if b.label=='Gerar combinações').click().run()
+            self.assertFalse(at.exception);self.assertFalse(at.error)
+            self.assertEqual(at.metric[0].value,'50')
+        finally:
+            importlib.reload(engine)
+
     def test_removed_fields_revision_history_and_group_status(self):
         at=AppTest.from_file(str(Path(__file__).resolve().parents[1]/'app.py'),default_timeout=30).run()
         next(b for b in at.button if b.label=='Carregar exemplo didático').click().run()

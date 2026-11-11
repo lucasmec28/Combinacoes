@@ -11,6 +11,7 @@ REVISIONS = [
             'Retirados os campos Prefixo dos nomes e Observações. Nomes passam a seguir família e sequência, inclusive em projetos antigos. Observações antigas são preservadas nos arquivos e na conferência.',
             'Restrições de presença e de principal de Q dispensam justificativa textual. Fatores manuais continuam exigindo fonte; a escolha de ψ efetivo mantém seu campo de critério.',
             'Incluída esta aba de histórico. Banco normativo e formatos de exportação para Robot, Excel e Word preservados.',
+            'Recarga dos módulos de cálculo quando o Streamlit conservar uma revisão anterior durante a atualização do aplicativo.',
         ],
     },
     {

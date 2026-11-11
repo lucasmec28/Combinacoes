@@ -3,6 +3,15 @@ from copy import deepcopy
 import json
 import pandas as pd
 import streamlit as st
+import importlib
+import engine
+
+# O processo do Streamlit pode conservar módulos da revisão anterior durante
+# a atualização dos arquivos. Recarregue também seus consumidores em conjunto.
+if getattr(engine, 'APP_VERSION', None) != 'PY04':
+    for module_name in ('engine', 'project_io', 'excel_export', 'word_export'):
+        importlib.reload(importlib.import_module(module_name))
+
 from engine import (BANK, BANK_HASH, TYPES, PROFILES, GAMMA, PSI, FAMILIES, RULES,
                     InputError, new_project, new_action, example_project, factor_record,
                     generate, fingerprint, sync_global_families, action_nature, APP_VERSION, SCHEMA_VERSION,
