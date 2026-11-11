@@ -8,7 +8,7 @@ from hashlib import sha256
 from pathlib import Path
 import json
 
-APP_VERSION = "PY02"
+APP_VERSION = "PY04"
 SCHEMA_VERSION = 2
 FAMILIES = {
     "ELUN": "ELU normal", "ELUE": "ELU especial", "ELUC": "ELU construção",
@@ -86,6 +86,30 @@ def action_nature(action):
     return TYPES.get(action.get("type"), {}).get("nature")
 
 
+def active_variable_group_count(project):
+    """Conta o cadastro ativo, independentemente da presença em uma combinação.
+
+    Grupo numérico prevalece; sem grupo, casos da mesma ação física contam juntos.
+    Compatibilidade controla simultaneidade e não muda esta contagem.
+    """
+    groups = set()
+    for action in project.get("actions", []):
+        if action.get("active") is not True or action_nature(action) != "Q":
+            continue
+        group = action.get("group")
+        if group is not None:
+            key = ("group", positive_int(group, "Grupo"))
+        else:
+            origin = action.get("origin", "").strip()
+            key = ("origin", origin) if origin else ("case", action.get("case"))
+        groups.add(key)
+    return len(groups)
+
+
+def uses_grouped_q(project):
+    return project.get("q_mode") == "grouped" and active_variable_group_count(project) >= 2
+
+
 def sync_global_families(project):
     """A seleção lateral governa todas as ações; E participa só de ELUX."""
     for action in project.get("actions", []):
@@ -103,8 +127,7 @@ def fingerprint(project):
 def example_project():
     p = new_project()
     p.update(name="Exemplo didático — cobertura e quatro ventos", standard="NBR 8800:2024",
-             families=["ELUN", "ELSR", "ELSF", "ELSQP"], g_mode="separate", q_mode="separate",
-             prefix="EX_")
+             families=["ELUN", "ELSR", "ELSF", "ELSQP"], g_mode="separate", q_mode="separate")
     for i, name, kind, prof in [
         (1, "Peso próprio", "ACO", None), (2, "Sobrecarga de cobertura", "OUT", "USO3"),
         (3, "Vento +X", "VEN", "VEN"), (4, "Vento -X", "VEN", "VEN"),
@@ -133,12 +156,12 @@ def factor_record(project, action):
         c = action.get("custom")
         if not isinstance(c, dict) or c.get("standard") != standard:
             raise InputError("Ação personalizada: confirme os fatores para a norma atual.")
-        if not c.get("source", "").strip() or not action.get("notes", "").strip():
-            raise InputError("Ação personalizada exige fonte e justificativa.")
+        if not c.get("source", "").strip():
+            raise InputError("Ação personalizada exige fonte dos fatores.")
         nature = c.get("nature")
         if nature not in ("G direta", "G indireta", "Q", "E"):
             raise InputError("Selecione a natureza da ação personalizada.")
-        if nature == "G direta" and project["g_mode"] != "separate" or nature == "Q" and project["q_mode"] != "separate":
+        if nature == "G direta" and project["g_mode"] != "separate" or nature == "Q" and uses_grouped_q(project):
             raise InputError("Ação personalizada exige ponderação separada para sua natureza.")
         gv, pv = c.get("gamma"), c.get("psi")
         source_g = source_p = "MANUAL: " + c["source"].strip()
@@ -150,7 +173,7 @@ def factor_record(project, action):
         key = kind
         if nature == "G direta" and project["g_mode"] == "grouped":
             key = grouped_key(project, nature)
-        if nature == "Q" and project["q_mode"] == "grouped":
+        if nature == "Q" and uses_grouped_q(project):
             if not (kind == "TEM" and project["temperature_separate"]):
                 key = grouped_key(project, nature)
         row = GAMMA.get((standard, key))
@@ -210,10 +233,11 @@ def prepare(project):
         if project.get(field_name) not in ("separate", "grouped"):
             raise InputError("Escolha como ponderar as ações permanentes e variáveis.")
     standard = project["standard"]
-    if standard == "NBR 14762:2010" and "grouped" in (project["g_mode"], project["q_mode"]):
+    grouped_q = uses_grouped_q(project)
+    if standard == "NBR 14762:2010" and (project["g_mode"] == "grouped" or grouped_q):
         if project.get("occupancy_band") not in (">5", "<=5"):
             raise InputError("Selecione a faixa de uso/ocupação: >5 ou ≤5 kN/m².")
-    if project["q_mode"] == "grouped":
+    if grouped_q:
         if project.get("temperature_separate") not in (True, False):
             raise InputError("Defina o tratamento da temperatura atmosférica.")
         if standard != "NBR 8800:2024" and project["g_mode"] != "grouped":
@@ -226,11 +250,6 @@ def prepare(project):
                 raise InputError("Justifique a escolha de psi efetivo.")
     positive_int(project.get("limit"), "Limite de combinações", 50000)
     positive_int(project.get("visit_limit"), "Limite de tentativas", 5_000_000)
-    prefix = project.get("prefix", "")
-    if not isinstance(prefix, str) or len(prefix) > 20 or any(c in prefix for c in "\t\r\n"):
-        raise InputError("Prefixo: até 20 caracteres, sem tabulações ou quebras de linha.")
-    if prefix.startswith(("=", "+", "-", "@")):
-        raise InputError("O prefixo deve começar por uma letra, número ou sublinhado.")
     actions = project.get("actions")
     if not isinstance(actions, list) or len(actions) > MAX_ACTIONS:
         raise InputError(f"Cadastre até {MAX_ACTIONS} ações.")
@@ -261,7 +280,6 @@ def prepare(project):
         except InputError as exc:
             raise InputError(f"Caso {cid}: {exc}") from exc
         nature = fr["nature"]
-        note = a.get("notes", "").strip()
         if nature.startswith("G"):
             if a.get("g_effect") not in ("both", "unfavorable", "favorable"):
                 raise InputError(f"Caso {cid}: defina o efeito da permanente.")
@@ -270,8 +288,6 @@ def prepare(project):
         elif nature == "Q":
             if a.get("presence") not in ("optional", "required"):
                 raise InputError(f"Caso {cid}: defina a presença da variável.")
-            if (a["presence"] == "required" or not a["primary"]) and not note:
-                raise InputError(f"Caso {cid}: justifique a redução de combinações.")
             for f in ("ELUE", "ELUC"):
                 if f in af and a.get("roles", {}).get(f) not in ("primary", "companion"):
                     raise InputError(f"Caso {cid}: defina o papel em {FAMILIES[f]}.")
@@ -325,16 +341,34 @@ class Result:
     counts: dict[str, int]
     duplicates: int
     visits: int
+    wind_filtered: int = 0
+
+
+def restricted_wind_route(units, selected, leader, family):
+    """Critério solicitado pelo usuário; não representa uma regra do banco normativo."""
+    if not family.startswith("ELU") or leader is None:
+        return False
+    if not all(a["type"] == "VEN" for a in units[leader].actions):
+        return False
+    permanents = [choice for unit, choice in zip(units, selected)
+                  if unit.factors["nature"] == "G direta" and choice is not None]
+    if not permanents or any(choice[0] != ONE for choice in permanents):
+        return False
+    return any(k != leader and choice is not None and choice[0] != ZERO
+               and unit.factors["nature"] == "Q"
+               and any(a["type"] not in ("TEM", "TEQ") for a in unit.actions)
+               for k, (unit, choice) in enumerate(zip(units, selected)))
 
 
 def generate(project, progress=None):
     """Sem estado global de projeto. Excede limite => exceção, nunca saída parcial."""
     project = sync_global_families(deepcopy(project))
     units = prepare(project)
+    action_factors = {int(a["case"]): factor_record(project, a) for unit in units for a in unit.actions}
     combination_limit = positive_int(project["limit"], "Limite de combinações", 50000)
     visit_limit = positive_int(project["visit_limit"], "Limite de tentativas", 5_000_000)
     rows, seen, counts = [], {}, {f: 0 for f in FAMILIES if f in project["families"]}
-    duplicate_count = visits = 0
+    duplicate_count = visits = wind_filtered = 0
     selected = [None] * len(units)
     group_in_use = set()
 
@@ -367,7 +401,10 @@ def generate(project, progress=None):
         start_count = len(rows)
 
         def emit(leader):
-            nonlocal duplicate_count
+            nonlocal duplicate_count, wind_filtered
+            if restricted_wind_route(units, selected, leader, family):
+                wind_filtered += 1
+                return
             cases, details = [], []
             for unit, choice in zip(units, selected):
                 if choice is None:
@@ -378,11 +415,11 @@ def generate(project, progress=None):
                 for action in unit.actions:
                     case = int(action["case"])
                     cases.append((case, coefficient))
-                    action_factors = factor_record(project, action)
+                    factors = action_factors[case]
                     details.append({"case": case, "name": action["name"], "origin": action["origin"],
                                     "gamma": str(g), "reduction": str(reduction), "coefficient": str(coefficient),
-                                    "role": role, "source_gamma": action_factors["source_gamma"],
-                                    "source_psi": action_factors["source_psi"], "notes": action.get("notes", "")})
+                                    "role": role, "source_gamma": factors["source_gamma"],
+                                    "source_psi": factors["source_psi"], "notes": action.get("notes", "")})
             if not cases:
                 return
             cases = tuple(sorted(cases))
@@ -397,7 +434,7 @@ def generate(project, progress=None):
             if len(rows) >= combination_limit:
                 raise GenerationLimit("A geração atingiu a capacidade desta versão. Nenhum conjunto parcial foi liberado. Revise os grupos incompatíveis e as hipóteses consideradas.")
             counts[family] += 1
-            name = f"{project['prefix']}{family}_{counts[family]:05d}"
+            name = f"{family}_{counts[family]:05d}"
             seen[key] = len(rows)
             rows.append(Combination(name, family, cases, [leader_name], tuple(sorted(details, key=lambda d: d["case"]))))
 
@@ -462,5 +499,5 @@ def generate(project, progress=None):
         for leader in leaders:
             walk(0, leader)
         if len(rows) == start_count:
-            raise InputError(f"{FAMILIES[family]}: nenhuma combinação válida; confira presenças obrigatórias e incompatibilidades.")
-    return Result(rows, fingerprint(project), counts, duplicate_count, visits)
+            raise InputError(f"{FAMILIES[family]}: nenhuma combinação válida; confira presenças obrigatórias, incompatibilidades e o critério de vento principal com permanentes iguais a 1.")
+    return Result(rows, fingerprint(project), counts, duplicate_count, visits, wind_filtered)

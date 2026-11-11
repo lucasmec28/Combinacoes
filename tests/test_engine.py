@@ -17,9 +17,15 @@ class EngineTests(unittest.TestCase):
         for f,index in [('ELUN','1'),('ELSR','5'),('ELSF','6'),('ELSQP','7')]:
             actual={c.cases for c in r.combinations if c.family==f}
             expected={tuple(sorted((int(k),D(str(v))) for k,v in d.items())) for d in reference[index]}
+            if f == 'ELUN':
+                # PY04 removes precisely the four legacy routes: G=1, SC=1.2,
+                # one wind=1.4. All other reference vectors remain unchanged.
+                removed={((1,D('1')),(2,D('1.2')),(wind,D('1.4'))) for wind in (3,4,5,6)}
+                self.assertTrue(removed <= expected)
+                expected -= removed
             self.assertEqual(actual,expected)
     def test_example_counts(self):
-        self.assertEqual(generate(self.p).counts,{'ELUN':28,'ELSR':14,'ELSF':10,'ELSQP':2})
+        self.assertEqual(generate(self.p).counts,{'ELUN':24,'ELSR':14,'ELSF':10,'ELSQP':2})
     def test_winds_exclusive(self):
         for c in generate(self.p).combinations:
             self.assertLessEqual(len({i for i,v in c.cases}&{3,4,5,6}),1)
@@ -50,7 +56,7 @@ class EngineTests(unittest.TestCase):
         with self.assertRaises(InputError):generate(self.one_family())
     def test_favorable_restriction(self):
         self.p['actions'][0]['g_effect']='favorable'
-        self.assertEqual(generate(self.one_family()).counts['ELUN'],14)
+        self.assertEqual(generate(self.one_family()).counts['ELUN'],10)
         self.assertTrue(all(dict(c.cases)[1]==1 for c in generate(self.p).combinations))
     def test_favorable_without_reason(self):
         self.p['actions'][0].update(g_effect='favorable',notes='')
@@ -112,9 +118,9 @@ class EngineTests(unittest.TestCase):
         with self.assertRaises(InputError):generate(self.p)
     def test_output_plain_rectangle(self):
         text=robot_tsv(generate(self.p).combinations)
-        lines=text.splitlines();self.assertEqual(len(lines),54)
+        lines=text.splitlines();self.assertEqual(len(lines),50)
         self.assertEqual(len({len(line.split('\t')) for line in lines}),1)
-        self.assertTrue(lines[0].startswith('EX_ELUN_00001\tELU\t1\t1,25'))
+        self.assertTrue(lines[0].startswith('ELUN_00001\tELU\t1\t1,25'))
         self.assertNotIn('Nome',text)
     def test_roundtrip_and_signature(self):
         p=load_project(dump_project(self.p));self.assertEqual(p,self.p)

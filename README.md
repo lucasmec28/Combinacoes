@@ -1,6 +1,6 @@
 # Combinações ELU / ELS para Robot
 
-Aplicativo Python + Streamlit, em português, para cadastrar ações e gerar combinações com saída tabulada para o Autodesk Robot Structural Analysis. Motor PY02 preservado, saídas PY03, preparada para GitHub e Streamlit Community Cloud.
+Aplicativo Python + Streamlit, em português, para cadastrar ações e gerar combinações com saída tabulada para o Autodesk Robot Structural Analysis. Versão PY04, preparada para GitHub e Streamlit Community Cloud.
 
 ## Publicar pelo GitHub + Streamlit
 
@@ -9,7 +9,7 @@ Aplicativo Python + Streamlit, em português, para cadastrar ações e gerar com
 3. Acesse [Streamlit Community Cloud](https://share.streamlit.io/), conecte sua conta GitHub e escolha **Create app**.
 4. Selecione o repositório e sua branch, normalmente `main`. No campo de arquivo principal, informe **`app.py`**. Nas configurações avançadas, selecione Python **3.12**, usado na verificação desta versão.
 5. Clique em **Deploy**. O Streamlit instala as dependências de `requirements.txt` e fornece o endereço do aplicativo.
-6. Abra o aplicativo, use **Abrir / salvar projeto → Carregar exemplo didático**, depois **02 · Gerar e copiar → Gerar combinações**. Devem aparecer **54 combinações**.
+6. Abra o aplicativo, use **Abrir / salvar projeto → Carregar exemplo didático**, depois **02 · Gerar e copiar → Gerar combinações**. Devem aparecer **50 combinações**.
 
 O pacote está pronto para publicação, mas não contém um repositório criado nem um endereço já publicado. Escolha a visibilidade e o acesso adequados ao uso da sua equipe. Não há autenticação implementada dentro do aplicativo; use os controles da hospedagem se precisar restringir o acesso.
 
@@ -47,7 +47,7 @@ Abra o endereço exibido no terminal, normalmente `http://localhost:8501`.
 - **Nome:** único texto de identificação exigido no cadastro. O campo de origem foi retirado da tela. A opção avançada **Vincular a outro caso da mesma ação física** mantém a possibilidade de representar partes inseparáveis de uma ação. Casos vinculados variam juntos e precisam de controles e fatores coerentes.
 - **Grupo:** relaciona ações diferentes. No grupo incompatível, entra no máximo uma ação física por combinação; no grupo compatível, podem coexistir. Compatibilidade não obriga simultaneidade.
 - Exemplo dos ventos: quatro casos, sem vínculo avançado entre eles, um mesmo grupo incompatível.
-- G pode variar favorável/desfavorável ou ter uma das ponderações restringida. Q pode variar presença/ausência ou ser obrigatória, e pode ser impedida de atuar como principal em ELU normal/ELS. Hipóteses favorável/desfavorável de G têm observação opcional. Presença obrigatória e impedimento de principal de Q ainda exigem justificativa.
+- G pode variar favorável/desfavorável ou ter uma das ponderações restringida. Q pode variar presença/ausência ou ser obrigatória, e pode ser impedida de atuar como principal em ELU normal/ELS. As escolhas de hipóteses de G, presença e principal de Q não exigem justificativa textual no cadastro.
 - Clique em **Gerar combinações**. O aplicativo impede a exportação de resultados antigos quando as entradas salvas mudam. Alterações ainda não salvas no formulário de ação não mudam o projeto.
 - Na saída, escolha famílias e separador decimal. Use o ícone de copiar do bloco tabulado ou baixe o Excel (.xlsx). O TSV permanece como alternativa de texto.
 
@@ -63,7 +63,7 @@ Para trabalhar com Excel, use o **XLSX**: abra a aba **ROBOT**, selecione a regi
 
 ### Guardar o trabalho
 
-Baixe o **projeto JSON** para salvar entradas, critérios, justificativas e versão do banco. Para continuar, abra esse arquivo no menu lateral. A sessão do navegador não é um arquivo persistente. Projetos PY01 são migrados automaticamente: a seleção global de famílias substitui as antigas marcações por ação, inclusive eventuais exclusões individuais. Números de casos, grupos, vínculos, fatores e observações são preservados. Os resultados são recalculados ao reabrir. Cada sessão mantém suas próprias entradas; não há banco compartilhado de projetos.
+Baixe o **projeto JSON** para salvar entradas, critérios, justificativas e versão do banco. Para continuar, abra esse arquivo no menu lateral. A sessão do navegador não é um arquivo persistente. Projetos PY01 são migrados automaticamente: a seleção global de famílias substitui as antigas marcações por ação, inclusive eventuais exclusões individuais. Números de casos, grupos, vínculos, fatores cadastrados e observações antigas são preservados. Na PY04, prefixos antigos deixam de ser aplicados; os nomes seguem família e sequência (ex.: ELUN_00001). Os resultados seguem os critérios da versão atual. Os resultados são recalculados ao reabrir. Cada sessão mantém suas próprias entradas; não há banco compartilhado de projetos.
 
 Em uma hospedagem Streamlit, as entradas são processadas no servidor. O código não usa telemetria própria nem serviços externos para os cálculos e não armazena automaticamente os projetos em disco. Arquivos baixados ficam sob controle do usuário.
 
@@ -88,9 +88,9 @@ As referências de tabela/página e observações estão em `catalog.json` e sã
 
 A seleção entre ψ0 e ψ2 nas situações especiais, de construção e excepcionais é explícita e exige justificativa compatível com a duração/condição normativa. Para ELU especial/construção, indique o papel das variáveis naquela família. Para ELU excepcional, cadastre a ação excepcional própria.
 
-As ponderações de G são compartilhadas entre casos vinculados da mesma ação física. A identificação de origem continua no arquivo para preservar a compatibilidade, mas não é um segundo nome exigido na interface. Quando G diretas são ponderadas em conjunto, compartilham um único controle. O agrupamento de γQ não une as ações físicas nem impede a iteração de principais. Para NBR 14762, a faixa de uso/ocupação é solicitada quando necessária. Para NBR 14762 e NBR 8681, o agrupamento de Q exige G diretas agrupadas. O tratamento da temperatura atmosférica é escolhido explicitamente. **Ponderar em conjunto não significa tratar as ações como truncadas**: essa opção utiliza a linha de γ para ações agrupadas; o caráter truncado, quando aplicável, é selecionado no tipo de carregamento.
+As ponderações de G são compartilhadas entre casos vinculados da mesma ação física. A identificação de origem continua no arquivo para preservar a compatibilidade, mas não é um segundo nome exigido na interface. Quando G diretas são ponderadas em conjunto, compartilham um único controle. O agrupamento de γQ não une as ações físicas nem impede a iteração de principais. A linha agrupada só é aplicada com pelo menos dois grupos de variáveis ativas; com um grupo, usam-se os γ de cada tipo. Para NBR 14762, a faixa de uso/ocupação é solicitada quando necessária. Para NBR 14762 e NBR 8681, quando o γ comum de Q for efetivamente aplicado (dois ou mais grupos), exige-se G diretas agrupadas. O tratamento da temperatura atmosférica é escolhido explicitamente. **Ponderar em conjunto não significa tratar as ações como truncadas**: essa opção utiliza a linha de γ para ações agrupadas; o caráter truncado, quando aplicável, é selecionado no tipo de carregamento.
 
-Tipos/categorias ausentes na norma escolhida não recebem fatores de outra norma. A categoria **Personalizada** permite fatores informados pelo calculista, com fonte, justificativa e vínculo à norma selecionada; a conferência os identifica como **MANUAL**. Ações personalizadas diretas G e Q exigem ponderação separada da respectiva natureza.
+Tipos/categorias ausentes na norma escolhida não recebem fatores de outra norma. A categoria **Personalizada** permite fatores informados pelo calculista, com fonte e vínculo à norma selecionada; a conferência os identifica como **MANUAL**. Ações personalizadas diretas G exigem ponderação separada; Q personalizadas não admitem γ comum efetivo, mas podem usar seus fatores próprios quando houver apenas um grupo ativo.
 
 Não há verificação de barras, dimensionamento ou memória de cálculo. O gerador não implementa automaticamente sismo, incêndio, fadiga, não linearidade, imperfeições ou regras particulares externas ao banco. Fatores favoráveis/desfavoráveis não são inferidos de esforços do modelo.
 
@@ -106,7 +106,7 @@ Proteções internas (retiradas dos campos da interface): 200 ações, até 50.0
 python -m unittest discover -s tests -v
 ```
 
-Na versão PY02 foram executados 45 testes do motor, arquivos, migração e interface via Streamlit AppTest. As adições verificam seleção global, cadastro sem origem manual, vínculos avançados, G favorável sem observação e exportação de casos não consecutivos 1, 2 e 4 para células numéricas do Excel. O exemplo tem 28 ELU normais, 14 ELS raras, 10 ELS frequentes e 2 ELS quase permanentes. Seus vetores foram comparados com a referência exportada da versão anterior, além de testes específicos de incompatibilidade, mesma origem, restrições, fatores por norma, situações especiais/excepcionais e limites.
+Na versão PY02 foram executados 45 testes do motor, arquivos, migração e interface via Streamlit AppTest. As adições verificam seleção global, cadastro sem origem manual, vínculos avançados, G favorável sem observação e exportação de casos não consecutivos 1, 2 e 4 para células numéricas do Excel. Na PY02, o exemplo tinha 28 ELU normais, 14 ELS raras, 10 ELS frequentes e 2 ELS quase permanentes. Na PY04, são 24 ELU normais e as mesmas quantidades de ELS, totalizando 50. Seus vetores foram comparados com a referência exportada da versão anterior, além de testes específicos de incompatibilidade, mesma origem, restrições, fatores por norma, situações especiais/excepcionais e limites.
 
 A comparação com a versão anterior é uma verificação de regressão, não uma certificação normativa independente. O AppTest verifica eventos e estado da interface; não executa a área de transferência do navegador nem a colagem no Robot.
 
@@ -117,14 +117,15 @@ Estrutura:
 - `catalog.json`: banco com fatores, fontes e observações.
 - `project_io.py`: importação/exportação de projetos, TSV e CSV.
 - `excel_export.py`: exportação XLSX com células numéricas, aba ROBOT sem cabeçalho e intervalo nomeado de cópia.
-- `tests/`: testes e referência do exemplo.
+- `revisions.py`: histórico exibido na aba Histórico de revisões; acrescente cada nova versão no início da lista.
+- `tests/`: testes e referência histórica do exemplo (PY04 verifica exatamente as quatro exclusões em relação à referência).
 - `examples/`: projeto didático e saída correspondente.
 - `.streamlit/config.toml`: tema e limite de upload.
 - `requirements.txt`: versões de dependências usadas na verificação.
 
 ## Atualizar uma instalação PY01
 
-Extraia o novo pacote e envie todos os arquivos e subpastas para a mesma raiz do repositório GitHub, substituindo os anteriores. Inclua **excel_export.py** e o novo **requirements.txt**, que acrescenta openpyxl. Envie também `.streamlit/config.toml` para atualizar o tema. Mantenha `app.py` como arquivo principal no Streamlit. Reabra seu JSON na aplicação atualizada e confira o rótulo **saídas PY03** no menu. O banco normativo não foi alterado.
+Extraia o novo pacote e envie todos os arquivos e subpastas para a mesma raiz do repositório GitHub, substituindo os anteriores. Inclua **excel_export.py** e o novo **requirements.txt**, que acrescenta openpyxl. Envie também `.streamlit/config.toml` para atualizar o tema. Mantenha `app.py` como arquivo principal no Streamlit. Reabra seu JSON na aplicação atualizada e confira o rótulo **PY04** no menu. O banco normativo não foi alterado.
 
 Projetos carregam a identificação do banco e recusam versões diferentes. Mudanças de fatores devem ser revisadas explicitamente; não edite o identificador de um projeto antigo apenas para contornar esse controle.
 
@@ -137,3 +138,18 @@ Projetos carregam a identificação do banco e recusam versões diferentes. Muda
 - Coeficientes exibem no mínimo duas casas, preservando precisão adicional. Famílias, casos, fatores, sinais e banco normativo não foram alterados.
 - Dependência nova: python-docx 1.2.0. Inclua word_export.py na atualização.
 - 54 testes executados com sucesso, incluindo AppTest, seleção de famílias, mudança de entradas e exportações. Inspeção de colagem no Robot continua pendente; revisão de saídas não representa validação normativa nova.
+
+
+## Critérios e interface PY04 — 11 de novembro de 2026
+
+Estes são critérios de geração solicitados pelo usuário; não são apresentados como novas exigências das normas. O arquivo `catalog.json` não foi modificado.
+
+- **Vento principal, somente ELU:** havendo permanentes diretas (PP/CP), se todos os seus fatores forem exatamente 1, são descartadas hipóteses com outras variáveis acompanhantes, exceto temperatura atmosférica ou de equipamentos (`TEM`/`TEQ`). Com algum fator de permanente direta diferente de 1, o filtro não atua. ELS e vento acompanhante mantêm o comportamento anterior. Se não houver permanente direta cadastrada, o filtro não atua.
+- **γ comum de Q:** conta grupos de variáveis cadastradas e ativas, antes da geração. Um grupo numérico conta uma vez, seja compatível ou incompatível. Sem grupo, cada ação física conta uma vez; casos vinculados contam juntos. G, ações excepcionais e casos inativos não entram nessa contagem. Temperatura conta como variável. Com um grupo, cada tipo usa seu próprio γ; com dois ou mais, usa-se a linha agrupada da norma selecionada, respeitando a opção de temperatura atmosférica separada. A ausência de um grupo numa combinação não muda o γ decidido pelo cadastro.
+- **Exemplo:** quatro ventos no grupo 1, sem outra variável ativa, usam γ normal de vento = 1,4. Com uma sobrecarga ativa em outro grupo (ou sem grupo), a opção comum passa a usar a linha agrupada — 1,5 na NBR 8800:2024; os valores das demais normas permanecem os de suas tabelas.
+- **Presença obrigatória:** o filtro não transforma uma variável obrigatória em opcional. Descarta a hipótese inteira; se nenhuma combinação válida restar em uma família, bloqueia a geração com mensagem explicativa.
+- **Interface:** retirados Prefixo dos nomes e Observações. Justificativas de G/Q não bloqueiam o cadastro; a fonte de fatores manuais e o critério de ψ efetivo continuam disponíveis. Observações antigas seguem no JSON e na conferência. Prefixos antigos deixam de alterar os nomes gerados.
+- **Histórico de revisões:** nova aba com PY04 e as revisões anteriores documentadas. As próximas alterações devem atualizar `revisions.py` e `APP_VERSION`.
+- **Compatibilidade:** mantidos o esquema JSON 2, os números reais de casos, grupos e vínculos, as colunas Robot e as exportações Excel, TSV, CSV e Word. Ao reabrir um projeto antigo, regenere as combinações.
+
+Verificação desta revisão: execute `python -m unittest discover -s tests -v`. O registro da execução acompanha `TEST_RESULTS.txt`. Os testes cobrem os filtros ELU/ELS, grupos ativos, fatores próprios e comuns por norma, temperatura, migração e fluxos de interface/exportação. Não executam a colagem dentro do Robot.

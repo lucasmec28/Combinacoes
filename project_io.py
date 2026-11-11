@@ -83,6 +83,7 @@ def load_project(data):
         dump_project(p)
         p['schema']=SCHEMA_VERSION
         p['app_version']=APP_VERSION
+        p['prefix']=''  # PY04 usa somente família e sequência nos nomes.
         return sync_global_families(deepcopy(p))
     except (ValueError, TypeError, KeyError) as exc:
         raise InputError(f'Não foi possível abrir: {exc}') from None

@@ -5,10 +5,12 @@ import pandas as pd
 import streamlit as st
 from engine import (BANK, BANK_HASH, TYPES, PROFILES, GAMMA, PSI, FAMILIES, RULES,
                     InputError, new_project, new_action, example_project, factor_record,
-                    generate, fingerprint, sync_global_families, action_nature, APP_VERSION, SCHEMA_VERSION)
+                    generate, fingerprint, sync_global_families, action_nature, APP_VERSION, SCHEMA_VERSION,
+                    active_variable_group_count)
 from project_io import dump_project, load_project, robot_tsv, audit_csv
 from excel_export import robot_xlsx
 from word_export import combinations_docx
+from revisions import REVISIONS
 
 st.set_page_config(page_title='Combinações • Robot', page_icon='🏗️', layout='wide')
 st.markdown('''<style>
@@ -52,10 +54,11 @@ def pick(label, options, value, key, labels=None, help=None):
 p=st.session_state.project
 p['schema']=SCHEMA_VERSION
 p['app_version']=APP_VERSION
+p['prefix']=''  # Campo legado mantido apenas para compatibilidade do JSON.
 rev=st.session_state.revision
 with st.sidebar:
     st.markdown('### COMBINAÇÕES / ROBOT')
-    st.caption(f'Estruturas metálicas · ELU + ELS · {APP_VERSION} · saídas PY03')
+    st.caption(f'Estruturas metálicas · ELU + ELS · {APP_VERSION}')
     p['name']=st.text_input('Projeto',value=p['name'],key=f'name_{rev}',placeholder='Nome da estrutura')
     p['standard']=pick('Norma de referência',BANK['standards'],p['standard'],f'std_{rev}',
         help='Os fatores são buscados exclusivamente nesta norma. NBR 8800 inclui a errata de 2025.')
@@ -69,6 +72,10 @@ with st.sidebar:
         p['q_mode']=pick('Variáveis (γQ)',list(qm),p['q_mode'],f'qm_{rev}',qm)
         st.caption('Por tipo: usa a linha própria da tabela para aço, carga permanente, vento etc. Em conjunto: usa a linha normativa de ações agrupadas. Para G, o conjunto também varia favorável/desfavorável em bloco.')
         st.caption('Esta escolha altera os coeficientes γ. Não define incompatibilidade e não transforma uma carga em ação truncada. Ação truncada, quando aplicável, é um tipo de carregamento no cadastro.')
+        if p['q_mode']=='grouped':
+            n=active_variable_group_count(p)
+            st.caption(f'Cadastro ativo: {n} grupo(s) de variáveis. '+('γ comum aplicado.' if n>=2 else 'Usam-se os γ próprios de cada tipo; o γ comum só será aplicado com 2 ou mais grupos.'))
+            st.caption('Um mesmo número de grupo conta uma vez. Sem grupo, cada ação física conta separadamente; casos vinculados contam juntos. A contagem usa o cadastro ativo, mesmo que um grupo esteja ausente de uma combinação.')
         if p['standard']=='NBR 14762:2010' and 'grouped' in (p['g_mode'],p['q_mode']):
             p['occupancy_band']=pick('Uso / ocupação (kN/m²)',['<=5','>5'],p['occupancy_band'],f'occ_{rev}',{'<=5':'Até 5 kN/m²','>5':'Acima de 5 kN/m²'})
         if p['q_mode']=='grouped':
@@ -78,7 +85,6 @@ with st.sidebar:
                 p['effective'][f]=pick(f'ψ efetivo · {FAMILIES[f]}',['psi0','psi2'],p['effective'][f],f'ef_{f}_{rev}',{'psi0':'ψ0','psi2':'ψ2'})
         if set(p['families']) & {'ELUE','ELUC','ELUX'}:
             p['effective_reason']=st.text_area('Critério / duração que fundamenta ψ efetivo',value=p['effective_reason'],key=f'efreason_{rev}')
-        p['prefix']=st.text_input('Prefixo dos nomes',value=p['prefix'],max_chars=20,key=f'prefix_{rev}')
 
     with st.expander('Abrir / salvar projeto'):
         st.caption('Baixe o JSON para guardar suas entradas e reabrir em outro momento. A sessão não é um arquivo salvo.')
@@ -86,7 +92,7 @@ with st.sidebar:
         if st.button('Abrir arquivo',disabled=uploaded is None):
             try:
                 replace_project(load_project(uploaded.getvalue()))
-                st.session_state.import_notice='Projeto aberto. As famílias selecionadas no menu lateral agora se aplicam a todas as ações; exceções individuais da PY01 foram substituídas por essa seleção. Números, grupos, vínculos e fatores foram preservados.'
+                st.session_state.import_notice='Projeto aberto. As famílias do menu lateral se aplicam a todas as ações. Números, grupos, vínculos e fatores cadastrados foram preservados. Os resultados serão recalculados com os critérios PY04 descritos no Histórico de revisões; os nomes usam família e sequência, sem prefixo.'
                 st.rerun()
             except InputError as exc: st.error(str(exc))
         st.download_button('Baixar projeto JSON',dump_project(p),'projeto_combinacoes.json','application/json',on_click='ignore')
@@ -102,7 +108,7 @@ if st.session_state.get('import_notice'):
 st.caption('Cadastre os casos, defina os critérios e copie a tabela. Fatores e decisões ficam disponíveis para conferência.')
 if p['name'].startswith('Exemplo didático'):
     st.info('EXEMPLO FICTÍCIO — os carregamentos e a categoria de uso servem para demonstrar a interface. Substitua-os pelos critérios do seu projeto.')
-tab_actions,tab_result,tab_bank,tab_help=st.tabs(['01 · Ações','02 · Gerar e copiar','03 · Fatores e critérios','Como usar'])
+tab_actions,tab_result,tab_bank,tab_help,tab_history=st.tabs(['01 · Ações','02 · Gerar e copiar','03 · Fatores e critérios','Como usar','Histórico de revisões'])
 with tab_actions:
     left,right=st.columns([1.15,1],gap='large')
     with left:
@@ -141,7 +147,7 @@ with tab_actions:
         a['type']=pick('Tipo de carregamento',available,base['type'],key+'type',{**{k:v['label'] for k,v in TYPES.items()},'CUSTOM':'Personalizada — fatores informados pelo calculista'})
         nature=TYPES.get(a['type'],{}).get('nature')
         if a['type']=='CUSTOM':
-            st.warning('Fatores manuais: informe a fonte, vincule à norma selecionada e justifique. Não serão apresentados como valores do banco normativo.')
+            st.warning('Fatores manuais: informe a fonte e vincule à norma selecionada. Não serão apresentados como valores do banco normativo.')
             custom=base['custom'] or {'nature':None,'gamma':['']*6,'psi':['']*3,'source':''}
             nature=pick('Natureza',['G direta','G indireta','Q','E'],custom.get('nature'),key+'nature')
             gs=[]
@@ -171,7 +177,7 @@ with tab_actions:
         if nature and nature.startswith('G'):
             a['group']=None;a['compatibility']=None
             a['g_effect']=pick('Ponderações a considerar',['both','unfavorable','favorable'],base['g_effect'],key+'effect',{'both':'Favorável e desfavorável','unfavorable':'Somente desfavorável','favorable':'Somente favorável'})
-            st.caption('Escolha conforme o efeito que você está verificando. Para G, o texto de justificativa é opcional nas hipóteses favorável e desfavorável.')
+            st.caption('Escolha conforme o efeito que você está verificando.')
         if nature in ('Q','E'):
             group=st.number_input('Grupo de compatibilidade (0 = sem grupo)',0,2147483646,int(base['group'] or 0),key=key+'group')
             a['group']=group or None
@@ -195,14 +201,16 @@ with tab_actions:
                 a['origin']=base['origin'] if base['origin'] and not matching else f"CASO_{a['case']}"
                 used={x['origin'] for x in peers}
                 while a['origin'] in used:a['origin']+='_' 
-        a['notes']=st.text_area('Observações',base['notes'],key=key+'notes',placeholder='Opcional para hipóteses de G. Informe fonte/critério para fatores manuais e restrições de Q.')
         if st.button('Salvar ação' if editing else 'Adicionar ao cadastro',type='primary'):
             try:
                 if not a['name'].strip():raise InputError('Preencha o nome do carregamento.')
                 if not a['origin'].strip():raise InputError('Selecione o caso ao qual vincular ou desmarque o vínculo avançado.')
                 if any(x['case']==a['case'] for i,x in enumerate(p['actions']) if not editing or i!=idx):raise InputError('Este número de caso já está cadastrado.')
                 if len(p['actions'])>=200 and not editing:raise InputError('Limite de 200 ações.')
-                factor_record(p,a)
+                candidate=deepcopy(p)
+                if editing:candidate['actions'][idx]=a
+                else:candidate['actions'].append(a)
+                factor_record(candidate,a)
                 if editing:p['actions'][idx]=a
                 else:p['actions'].append(a)
                 sync_global_families(p)
@@ -214,7 +222,7 @@ with tab_actions:
 
 with tab_result:
     st.subheader('Gerar, conferir e copiar')
-    st.caption('A saída inclui Nome, Tipo de combinação (ELU/ELS ou ULS/SLS), casos numéricos e coeficientes. Os nomes são gerados com o prefixo escolhido e a família de combinação.')
+    st.caption('A saída inclui Nome, Tipo de combinação (ELU/ELS ou ULS/SLS), casos numéricos e coeficientes. Os nomes seguem a família e a sequência, por exemplo ELUN_00001.')
     if st.button('Gerar combinações',type='primary'):
         st.session_state.pop('result',None)
         try:
@@ -229,6 +237,8 @@ with tab_result:
         m1,m2,m3=st.columns(3)
         m1.metric('Combinações distintas',len(result.combinations));m2.metric('Famílias',len(result.counts));m3.metric('Repetições removidas',result.duplicates)
         st.caption(' · '.join(f'{FAMILIES[f]}: {n}' for f,n in result.counts.items()))
+        if result.wind_filtered:
+            st.caption(f'{result.wind_filtered} hipótese(s) descartada(s) pelo critério de vento principal em ELU com todos os fatores de PP/CP iguais a 1. Temperatura pode acompanhar; as demais variáveis são excluídas dessas hipóteses.')
         families=st.multiselect('Famílias a copiar / baixar',list(result.counts),default=list(result.counts),format_func=FAMILIES.get,key='export_families_'+result.signature)
         rows=[c for c in result.combinations if c.family in families]
         decimal_comma=st.radio('Separador decimal',[True,False],format_func=lambda v:'Vírgula (1,25)' if v else 'Ponto (1.25)',horizontal=True)
@@ -270,13 +280,20 @@ with tab_bank:
 
 Na opção de **γ do conjunto**, todas as permanentes diretas compartilham a ponderação favorável/desfavorável. Na opção **γ por tipo**, cada ação usa sua linha da tabela. Casos vinculados no controle avançado representam uma mesma ação física e variam juntos. Grupos compatíveis permitem simultaneidade; grupos incompatíveis permitem apenas uma ação por vez. Nenhuma dessas opções caracteriza uma ação como truncada.
 
+**Critérios de geração definidos para este aplicativo:**
+
+- **Vento principal em ELU:** se houver permanentes diretas (PP/CP) e todos os seus fatores forem iguais a 1, só temperatura pode acompanhar o vento como variável. A exceção abrange temperatura atmosférica e de equipamentos. A restrição não se aplica a ELS, a vento acompanhante, nem quando algum fator de permanente direta é diferente de 1. Não se muda a hipótese de presença obrigatória para forçar uma combinação.
+- **γ comum de variáveis:** só é aplicado com 2 ou mais grupos de variáveis cadastradas e ativas. Com um único grupo, cada tipo usa seu próprio γ. Um grupo numérico conta uma vez, seja compatível ou incompatível; ações sem grupo contam separadamente, exceto casos vinculados à mesma ação física. Temperatura também entra na contagem. A contagem não depende dos termos presentes em cada combinação.
+
+Esses critérios são decisões de geração solicitadas pelo usuário. Os valores e as fontes do banco normativo permanecem disponíveis nas tabelas acima.
+
 A rotina cobre combinações estáticas com fatores escalares. Não trata automaticamente sismo, incêndio, fadiga, análise não linear, imperfeições ou regras específicas externas ao banco. Não é uma memória de cálculo.''')
     st.caption(f'Banco {BANK["version"]} · identificação {BANK_HASH[:16]}')
 
 with tab_help:
     st.subheader('Do cadastro ao Robot')
     st.markdown('''1. Escolha a norma e as famílias de combinação no menu lateral. Essa seleção vale para todas as ações; ações excepcionais participam apenas de ELU excepcional.
-2. Selecione como aplicar γ. **Por tipo** usa os coeficientes específicos de aço, carga permanente, vento etc. **Em conjunto** usa os coeficientes da linha normativa de ações agrupadas. Isso não significa considerar ações truncadas.
+2. Selecione como aplicar γ. **Por tipo** usa os coeficientes específicos de aço, carga permanente, vento etc. **γ comum para as variáveis** só usa a linha de ações agrupadas quando há 2 ou mais grupos de variáveis ativas; com um grupo, usa os fatores próprios. Isso não significa considerar ações truncadas.
 3. Cadastre cada carregamento com o **mesmo número do caso no Robot** e um nome. Se a sobrecarga é o caso 4 no Robot, cadastre 4 aqui, mesmo que seja a terceira linha da lista.
 4. Para quatro ventos alternativos, use quatro casos com o mesmo grupo e relação **Incompatíveis**. Deixe o vínculo avançado desmarcado: ele serve para partes inseparáveis de uma única ação física.
 5. Ajuste as hipóteses de G e os controles de Q conforme sua análise. As hipóteses favorável/desfavorável de G não exigem texto de justificativa.
@@ -284,7 +301,7 @@ with tab_help:
 7. Para a memória de cálculo, baixe o Word com as combinações selecionadas, em lista numerada e editável, sem a equação normativa.
 8. Baixe o projeto JSON para continuar depois. Projetos PY01 podem ser reabertos; a seleção global de famílias substitui as antigas seleções individuais.
 
-**Exemplo didático:** 1 permanente, 1 sobrecarga e 4 ventos incompatíveis. Resultado esperado: 28 ELU normais, 14 ELS raras, 10 ELS frequentes e 2 ELS quase permanentes.
+**Exemplo didático:** 1 permanente, 1 sobrecarga e 4 ventos incompatíveis. Resultado esperado: 24 ELU normais, 14 ELS raras, 10 ELS frequentes e 2 ELS quase permanentes (50 no total). Quatro hipóteses com vento principal, PP igual a 1 e sobrecarga acompanhante são descartadas pelo critério PY04.
 
 **Se o Excel abrir o TSV em uma coluna:** use a exportação .xlsx, que já contém células separadas. Evite copiar a célula única que contém a linha inteira.
 
@@ -293,4 +310,11 @@ with tab_help:
 **Geração:** o aplicativo mantém proteções internas contra excesso de combinações e interrompe com uma mensagem, sem liberar resultados parciais. Os controles numéricos foram retirados da interface.
 
 **Dados:** baixe o JSON para guardar o projeto. A sessão não é um arquivo salvo; em uma publicação Streamlit, o servidor processa as entradas enviadas.''')
+
+with tab_history:
+    st.subheader('Histórico de revisões')
+    st.caption(f'Versão em uso: {APP_VERSION}. Histórico das alterações do aplicativo; os projetos JSON guardam as entradas de cada cálculo.')
+    for revision in REVISIONS:
+        st.markdown(f"### {revision['version']} · {revision['date']}")
+        st.markdown('\n'.join(f'- {change}' for change in revision['changes']))
 

@@ -1,12 +1,12 @@
-test_duplicate_origin_and_case (test_app.InterfaceTests.test_duplicate_origin_and_case) ... 2026-09-30 11:27:59.006 WARNING streamlit.runtime.scriptrunner_utils.script_run_context: Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+test_duplicate_origin_and_case (test_app.InterfaceTests.test_duplicate_origin_and_case) ... 2026-11-11 15:14:29.256 WARNING streamlit.runtime.scriptrunner_utils.script_run_context: Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
 ok
-test_empty_validation (test_app.InterfaceTests.test_empty_validation) ... 2026-09-30 11:27:59.681 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+test_empty_validation (test_app.InterfaceTests.test_empty_validation) ... 2026-11-11 15:14:29.761 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
 ok
-test_example_generate_edit_stale_regenerate (test_app.InterfaceTests.test_example_generate_edit_stale_regenerate) ... 2026-09-30 11:27:59.884 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+test_example_generate_edit_stale_regenerate (test_app.InterfaceTests.test_example_generate_edit_stale_regenerate) ... 2026-11-11 15:14:29.902 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
 ok
-test_filter_and_delete (test_app.InterfaceTests.test_filter_and_delete) ... 2026-09-30 11:28:00.466 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+test_filter_and_delete (test_app.InterfaceTests.test_filter_and_delete) ... 2026-11-11 15:14:30.352 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
 ok
-test_type_change_exceptional (test_app.InterfaceTests.test_type_change_exceptional) ... 2026-09-30 11:28:00.849 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+test_type_change_exceptional (test_app.InterfaceTests.test_type_change_exceptional) ... 2026-11-11 15:14:30.652 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
 ok
 test_bank_version (test_engine.EngineTests.test_bank_version) ... ok
 test_conflicting_bundle (test_engine.EngineTests.test_conflicting_bundle) ... ok
@@ -40,20 +40,46 @@ test_winds_compatible (test_engine.EngineTests.test_winds_compatible) ... ok
 test_winds_exclusive (test_engine.EngineTests.test_winds_exclusive) ... ok
 test_zero_and_decimal_format (test_engine.EngineTests.test_zero_and_decimal_format) ... ok
 test_zero_psi_winds_absent_qp (test_engine.EngineTests.test_zero_psi_winds_absent_qp) ... ok
-test_advanced_link_survives_edit (test_py02.PY02Tests.test_advanced_link_survives_edit) ... 2026-09-30 11:28:01.265 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+test_all_family_types (test_exports_py03.ExportTests.test_all_family_types) ... ok
+test_app_export_language_and_stale_results (test_exports_py03.ExportTests.test_app_export_language_and_stale_results) ... 2026-11-11 15:14:30.920 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+ok
+test_empty_exports (test_exports_py03.ExportTests.test_empty_exports) ... ok
+test_types_do_not_depend_on_names (test_exports_py03.ExportTests.test_types_do_not_depend_on_names) ... ok
+test_word_exact_precision_and_signs (test_exports_py03.ExportTests.test_word_exact_precision_and_signs) ... ok
+test_word_missing_name_rejected (test_exports_py03.ExportTests.test_word_missing_name_rejected) ... ok
+test_word_selected_rows_order_and_no_equations (test_exports_py03.ExportTests.test_word_selected_rows_order_and_no_equations) ... ok
+test_word_xml_controls_do_not_break_exports (test_exports_py03.ExportTests.test_word_xml_controls_do_not_break_exports) ... ok
+test_xlsx_and_tsv_alignment (test_exports_py03.ExportTests.test_xlsx_and_tsv_alignment) ... ok
+test_advanced_link_survives_edit (test_py02.PY02Tests.test_advanced_link_survives_edit) ... 2026-11-11 15:14:31.414 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
 ok
 test_case4_kept_in_all_exports (test_py02.PY02Tests.test_case4_kept_in_all_exports) ... ok
-test_favorable_edit_without_note (test_py02.PY02Tests.test_favorable_edit_without_note) ... 2026-09-30 11:28:01.757 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+test_favorable_edit_without_note (test_py02.PY02Tests.test_favorable_edit_without_note) ... 2026-11-11 15:14:31.741 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
 ok
 test_favorable_without_note_for_all_standards (test_py02.PY02Tests.test_favorable_without_note_for_all_standards) ... ok
 test_global_families_overrides_old_action_flags (test_py02.PY02Tests.test_global_families_overrides_old_action_flags) ... ok
 test_legacy_schema_import_preserves_numbers_and_links (test_py02.PY02Tests.test_legacy_schema_import_preserves_numbers_and_links) ... ok
-test_new_action_auto_origin_and_families (test_py02.PY02Tests.test_new_action_auto_origin_and_families) ... 2026-09-30 11:28:02.196 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+test_new_action_auto_origin_and_families (test_py02.PY02Tests.test_new_action_auto_origin_and_families) ... 2026-11-11 15:14:32.028 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
 ok
-test_no_repeated_fields_or_limits (test_py02.PY02Tests.test_no_repeated_fields_or_limits) ... 2026-09-30 11:28:02.513 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+test_no_repeated_fields_or_limits (test_py02.PY02Tests.test_no_repeated_fields_or_limits) ... 2026-11-11 15:14:32.221 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+ok
+test_els_and_other_principal_unchanged (test_py04.PY04EngineTests.test_els_and_other_principal_unchanged) ... ok
+test_four_winds_one_group_use_own_gamma_in_all_standards (test_py04.PY04EngineTests.test_four_winds_one_group_use_own_gamma_in_all_standards) ... ok
+test_grouped_factors_follow_each_standard_table (test_py04.PY04EngineTests.test_grouped_factors_follow_each_standard_table) ... ok
+test_inactive_group_excluded_active_group_counts_even_when_absent (test_py04.PY04EngineTests.test_inactive_group_excluded_active_group_counts_even_when_absent) ... ok
+test_legacy_prefix_removed_notes_retained (test_py04.PY04EngineTests.test_legacy_prefix_removed_notes_retained) ... ok
+test_mixed_permanent_factors_do_not_trigger_filter (test_py04.PY04EngineTests.test_mixed_permanent_factors_do_not_trigger_filter) ... ok
+test_no_direct_permanents_no_wind_filter (test_py04.PY04EngineTests.test_no_direct_permanents_no_wind_filter) ... ok
+test_other_principal_route_remains_after_wind_filter (test_py04.PY04EngineTests.test_other_principal_route_remains_after_wind_filter) ... ok
+test_required_companion_conflict_does_not_force_absence (test_py04.PY04EngineTests.test_required_companion_conflict_does_not_force_absence) ... ok
+test_single_group_preserves_each_type_factor (test_py04.PY04EngineTests.test_single_group_preserves_each_type_factor) ... ok
+test_special_and_construction_wind_filter (test_py04.PY04EngineTests.test_special_and_construction_wind_filter) ... ok
+test_temperature_counts_but_can_keep_specific_gamma (test_py04.PY04EngineTests.test_temperature_counts_but_can_keep_specific_gamma) ... ok
+test_ungrouped_independent_and_linked_cases (test_py04.PY04EngineTests.test_ungrouped_independent_and_linked_cases) ... ok
+test_wind_unit_permanents_excludes_other_q_but_keeps_temperature (test_py04.PY04EngineTests.test_wind_unit_permanents_excludes_other_q_but_keeps_temperature) ... ok
+test_removed_fields_revision_history_and_group_status (test_py04.PY04InterfaceTests.test_removed_fields_revision_history_and_group_status) ... 2026-11-11 15:14:32.492 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
 ok
 
 ----------------------------------------------------------------------
-Ran 45 tests in 3.836s
+Ran 69 tests in 3.564s
 
 OK

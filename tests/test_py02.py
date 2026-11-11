@@ -13,7 +13,7 @@ class PY02Tests(unittest.TestCase):
     def test_global_families_overrides_old_action_flags(self):
         p=example_project();p['families']=['ELUN','ELSF']
         for a in p['actions']:a['families']=[]
-        self.assertEqual(generate(p).counts,{'ELUN':28,'ELSF':10})
+        self.assertEqual(generate(p).counts,{'ELUN':24,'ELSF':10})
     def test_legacy_schema_import_preserves_numbers_and_links(self):
         p=example_project();p.update(schema=1,app_version='PY01',families=['ELUN'])
         p['actions'][1]['case']=24
@@ -33,7 +33,7 @@ class PY02Tests(unittest.TestCase):
         self.assertEqual(r.counts,{'ELUN':8,'ELSF':2})
         wb=load_workbook(BytesIO(robot_xlsx(r.combinations)))
         ws=wb['ROBOT'];self.assertEqual(ws['G1'].value,4);self.assertEqual(ws['G1'].data_type,'n')
-        self.assertEqual(ws['H1'].value,1.5);self.assertEqual(ws['A1'].value,'EX_ELUN_00001')
+        self.assertEqual(ws['H1'].value,1.5);self.assertEqual(ws['A1'].value,'ELUN_00001')
         self.assertEqual(ws.max_row,10);self.assertEqual(ws.max_column,8)
         self.assertEqual(wb.defined_names['COPIAR_ROBOT'].attr_text,"'ROBOT'!$A$1:$H$10")
         for row,c in zip(ws.iter_rows(values_only=True),r.combinations):
@@ -72,11 +72,10 @@ class PY02Tests(unittest.TestCase):
         self.assertEqual(a['families'],at.session_state['project']['families'])
     def test_favorable_edit_without_note(self):
         at=self.app();self.click(at,'Editar ação')
-        next(x for x in at.selectbox if x.label=='Ponderações a considerar').set_value('favorable')
-        next(x for x in at.text_area if x.label=='Observações').set_value('').run()
+        next(x for x in at.selectbox if x.label=='Ponderações a considerar').set_value('favorable').run()
         self.click(at,'Salvar ação');self.click(at,'Gerar combinações')
         self.assertFalse(at.error)
-        self.assertEqual(at.metric[0].value,'40')
+        self.assertEqual(at.metric[0].value,'36')
     def test_advanced_link_survives_edit(self):
         at=self.app()
         next(x for x in at.text_input if x.label=='Nome do carregamento').set_value('Parte do PP')
@@ -85,7 +84,7 @@ class PY02Tests(unittest.TestCase):
         next(x for x in at.selectbox if x.label=='Caso ao qual vincular').set_value(1).run()
         self.click(at,'Adicionar ao cadastro');self.click(at,'Gerar combinações')
         self.assertFalse(at.error)
-        self.assertEqual(at.metric[0].value,'54')
+        self.assertEqual(at.metric[0].value,'50')
         actions=at.session_state['project']['actions']
         self.assertEqual(actions[-1]['origin'],actions[0]['origin'])
 
